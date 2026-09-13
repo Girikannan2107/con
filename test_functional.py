@@ -472,6 +472,151 @@ class TestBuildOneStillWorks(unittest.TestCase):
 
 
 @unittest.skipUnless(HAS_PYQT, "PyQt6 is not installed")
+class TestDecisionTrailScaleAndClearing(unittest.TestCase):
+    """The trail grows for the life of the deployment. It must stay cheap.
+
+    A refresh happens on every decision, on every navigation and on a clock
+    while an import streams. Rebuilding a thousands-row table each time - when
+    nothing about the trail has changed - is the cost that turns a usable bench
+    into a sluggish one after a few months of review.
+    """
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.app = _application()
+
+    def setUp(self) -> None:
+        import main2
+
+        self.answer = main2.QMessageBox.StandardButton.Yes
+        self.dialogs: List[str] = []
+        self._boxes = (main2.QMessageBox.information, main2.QMessageBox.warning)
+        main2.QMessageBox.information = lambda *a, **k: self.dialogs.append(a[-1])
+        main2.QMessageBox.warning = lambda *a, **k: (self.dialogs.append(a[2]),
+                                                     self.answer)[1]
+        self.addCleanup(self._restore)
+
+        self.folder = tempfile.mkdtemp(prefix="sif-trail-")
+        self.window = main2.MainWindow()
+        self.addCleanup(self.window.close)
+        self.window.decisions = DecisionLog(os.path.join(self.folder, "decisions.json"))
+        self.window.show()
+        self.app.processEvents()
+
+        from main import read_csv_reports
+
+        narratives, references = read_csv_reports(CSV_SAMPLE)
+        self.window._start(self.window._analysis_worker(texts=narratives,
+                                                        references=references))
+        self.assertTrue(self.window.worker.wait(180_000))
+        self.app.processEvents()
+
+    def _restore(self) -> None:
+        import main2
+
+        main2.QMessageBox.information, main2.QMessageBox.warning = self._boxes
+
+    def _grow_trail(self, size: int) -> None:
+        results = self.window._as_results()
+        while len(self.window.decisions.entries) < size:
+            self.window.decisions.record(
+                results[len(self.window.decisions.entries) % len(results)],
+                "confirmed", reviewer="hse")
+
+    def test_an_unchanged_trail_is_not_rebuilt(self) -> None:
+        self._grow_trail(400)
+        self.window._refresh()
+        self.app.processEvents()
+
+        rebuilt = []
+        original = self.window.review_view.trail_table.set_rows
+        self.window.review_view.trail_table.set_rows = (
+            lambda rows: (rebuilt.append(len(rows)), original(rows))[1])
+
+        for _ in range(5):
+            self.window._refresh()
+        self.app.processEvents()
+        self.assertEqual(rebuilt, [], "an unchanged trail must not be re-rendered")
+
+        # ...but a new decision must still reach the table.
+        self._grow_trail(401)
+        self.window._refresh()
+        self.app.processEvents()
+        self.assertEqual(rebuilt, [401])
+
+    def test_refreshing_stays_cheap_as_the_trail_grows(self) -> None:
+        import time
+
+        timings = {}
+        for size in (200, 2000):
+            self._grow_trail(size)
+            self.window._refresh()
+            self.app.processEvents()
+
+            started = time.perf_counter()
+            for _ in range(5):
+                self.window._refresh()
+            self.app.processEvents()
+            timings[size] = (time.perf_counter() - started) / 5 * 1000
+
+        self.assertLess(timings[2000], 60,
+                        f"a refresh costs {timings[2000]:.0f}ms at 2000 decisions")
+        # Ten times the trail must not cost anything like ten times the refresh.
+        self.assertLess(timings[2000], timings[200] * 4 + 10,
+                        f"refresh scales with the trail: {timings}")
+
+    def test_clearing_the_trail_asks_first_and_says_what_it_costs(self) -> None:
+        import main2
+
+        self._grow_trail(12)
+        self.answer = main2.QMessageBox.StandardButton.Cancel
+
+        self.window.confirm_clear_trail()
+
+        self.assertEqual(len(self.window.decisions.entries), 12,
+                         "cancelling must not erase anything")
+        prompt = " ".join(self.dialogs)
+        self.assertIn("12", prompt)
+        self.assertIn("auditor", prompt, "the dialog must name what is lost")
+        self.assertIn("cannot be undone", prompt)
+
+    def test_confirming_clears_the_trail_and_records_that_it_happened(self) -> None:
+        self._grow_trail(9)
+
+        self.window.confirm_clear_trail()
+        self.app.processEvents()
+
+        self.assertEqual(self.window.decisions.entries, [])
+        self.assertEqual(self.window.review_view.trail_table.rowCount(), 0)
+        # Reloading from disk must agree - the clear has to have been persisted.
+        self.assertEqual(DecisionLog(self.window.decisions.path).load().entries, [])
+        # The audit trail is a different record, and it keeps the fact.
+        actions = [entry.action for entry in self.window.audit.entries(limit=0)]
+        self.assertIn("review trail cleared", actions)
+
+    def test_clearing_an_empty_trail_says_so_rather_than_asking(self) -> None:
+        self.window.confirm_clear_trail()
+        self.assertIn("already empty", " ".join(self.dialogs))
+
+    def test_the_clear_button_is_on_the_trail_tab_of_both_builds(self) -> None:
+        import app
+        import app2
+        from ui.theme import C, apply_palette
+
+        # build_window() repoints the shared palette, so put it back or every
+        # later test in this process inherits the skin.
+        palette = {name: getattr(C, name) for name in vars(C)
+                   if name.isupper() and isinstance(getattr(C, name), str)}
+        self.addCleanup(apply_palette, palette)
+
+        for module in (app, app2):
+            window = module.build_window()
+            self.addCleanup(window.close)
+            self.assertTrue(hasattr(window.review_view, "clear_trail"))
+            self.assertEqual(window.review_view.clear_trail.text(), "Clear the trail")
+
+
+@unittest.skipUnless(HAS_PYQT, "PyQt6 is not installed")
 class TestExtractedDocumentActions(unittest.TestCase):
     """Each extracted document carries its own Preview, Analyse and Remove."""
 

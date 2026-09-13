@@ -335,7 +335,11 @@ class DecisionLog:
             os.makedirs(os.path.dirname(os.path.abspath(self.path)), exist_ok=True)
             temporary = f"{self.path}.tmp"
             with open(temporary, "w", encoding="utf-8") as handle:
-                json.dump(payload, handle, indent=2, ensure_ascii=False)
+                # No indent: the whole log is rewritten on every decision, and
+                # pretty-printing it triples both the bytes and the time for a
+                # file no one reads by hand - the trail tab and the CSV export
+                # are how it is read.
+                json.dump(payload, handle, ensure_ascii=False)
             os.replace(temporary, self.path)      # atomic: never a half-written log
             self.saved = True
             return True
@@ -365,6 +369,21 @@ class DecisionLog:
                     entry.reference or entry.fingerprint, entry.reviewer or "unnamed",
                     " (overturns the engine)" if entry.overturns_engine else "")
         return entry
+
+    def clear(self) -> int:
+        """Erase every decision. Returns how many were discarded.
+
+        Deliberately blunt and deliberately awkward to reach: the trail is the
+        record of who decided what, and the labels the model trains on are drawn
+        from it. Nothing in the console calls this on its own - only an operator
+        who has been told what it costs and said yes.
+        """
+        discarded = len(self.entries)
+        self.entries = []
+        self.save()
+        LOGGER.warning("Review trail cleared - %d decision(s) discarded from %s",
+                       discarded, self.path)
+        return discarded
 
     def undo(self) -> Optional[ReviewDecision]:
         """Withdraw the most recent decision - the misclick, not a change of mind."""

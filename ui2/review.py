@@ -87,6 +87,7 @@ class ReviewView(QWidget):
     decision_made = pyqtSignal(str, str)
     undo_requested = pyqtSignal()
     export_requested = pyqtSignal()
+    clear_trail_requested = pyqtSignal()
     reviewer_changed = pyqtSignal(str)
     #: Row index within the currently displayed queue.
     row_selected = pyqtSignal(int)
@@ -146,11 +147,25 @@ class ReviewView(QWidget):
         trail_caption.setObjectName("Faint")
         trail_caption.setWordWrap(True)
         self.trail_table = DataTable(TRAIL_COLUMNS)
+        #: Identifies what the trail table currently shows, so an unchanged
+        #: trail is not rebuilt row by row on every refresh.
+        self._trail_signature: Optional[Tuple[int, Optional[Dict[str, object]]]] = None
         export = QPushButton("Export the trail as CSV")
         export.clicked.connect(self.export_requested.emit)
+        self.clear_trail = QPushButton("Clear the trail")
+        self.clear_trail.setToolTip(
+            "Erase every recorded decision. The labels the model trains on go "
+            "with them, and an auditor loses the record of who decided what.")
+        self.clear_trail.clicked.connect(self.clear_trail_requested.emit)
+        trail_buttons = QHBoxLayout()
+        trail_buttons.setContentsMargins(0, 0, 0, 0)
+        trail_buttons.setSpacing(8)
+        trail_buttons.addWidget(export, stretch=1)
+        trail_buttons.addWidget(self.clear_trail)
+
         trail_layout.addWidget(trail_caption)
         trail_layout.addWidget(self.trail_table, stretch=1)
-        trail_layout.addWidget(export)
+        trail_layout.addLayout(trail_buttons)
 
         self.tabs.addTab(queue_page, "Queue")
         self.tabs.addTab(trail_page, "Decision trail")
@@ -357,7 +372,22 @@ class ReviewView(QWidget):
         self._restore(previous)
 
     def set_trail(self, rows: Sequence[Dict[str, object]]) -> None:
-        """Render the audit trail tab."""
+        """Render the audit trail tab, but only when it has actually changed.
+
+        Rebuilding the table means constructing a widget item per cell, and the
+        trail only grows - after a few months of review that is thousands of
+        rows rebuilt on every refresh, including the refreshes that happen while
+        an import is streaming and no decision has been made at all. Comparing
+        the payloads first costs a fraction of rebuilding them.
+        """
+        # The trail is append-only and newest-first, so its length and its first
+        # row identify it: a decision, a change or a clear moves one or both.
+        # That check is constant-time, where building the payloads to compare
+        # them is not.
+        signature = (len(rows), dict(rows[0]) if rows else None)
+        if signature == self._trail_signature:
+            return
+        self._trail_signature = signature
         self.trail_table.set_rows([self._trail_row(row) for row in rows])
 
     def set_case(self, result: Optional[Dict[str, object]],

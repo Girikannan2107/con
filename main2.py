@@ -626,6 +626,7 @@ class MainWindow(QMainWindow):
         self.review_view.decision_made.connect(self.record_decision)
         self.review_view.undo_requested.connect(self.undo_decision)
         self.review_view.export_requested.connect(self.export_decisions)
+        self.review_view.clear_trail_requested.connect(self.confirm_clear_trail)
         self.review_view.reviewer_changed.connect(self.set_reviewer)
         self.review_view.show_decided.stateChanged.connect(lambda _: self._refresh())
 
@@ -1421,6 +1422,40 @@ class MainWindow(QMainWindow):
             decision = dict(entry.to_dict())
             decision["decision_label"] = DECISION_LABELS.get(entry.decision, entry.decision)
         self.review_view.set_case(self.rows[position - 1], decision)
+
+    def confirm_clear_trail(self) -> None:
+        """Ask before erasing the decision trail, and say what it costs.
+
+        This is the one control in the console that destroys work a person did.
+        The dialog names the count and the two consequences - the auditor's
+        record and the model's labels - because "are you sure?" on its own is a
+        question nobody reads.
+        """
+        counts = self.decisions.counts()
+        decided = int(counts.get("decided", 0) or 0)
+        if not decided:
+            QMessageBox.information(self, APP_NAME, "The decision trail is already empty.")
+            return
+
+        labels = int(counts.get("labels", 0) or 0)
+        answer = QMessageBox.warning(
+            self, APP_NAME,
+            f"Erase all {decided} recorded decision(s)?\n\n"
+            f"The trail is what an auditor reads - it is the record of who decided "
+            f"what, and when. {labels} of these are the labels the model trains on, "
+            f"and they go too.\n\nThe reports themselves are not affected, and this "
+            f"cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel)
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        discarded = self.decisions.clear()
+        self.audit.functionality("review trail cleared", discarded=discarded,
+                                 labels_lost=labels)
+        LOGGER.warning("Review trail cleared by the operator (%d discarded)", discarded)
+        self._refresh()
+        self._set_status(f"Cleared the decision trail - {discarded} decision(s) discarded")
 
     def record_decision(self, decision: str, note: str) -> None:
         """The reviewer called the selected report."""
