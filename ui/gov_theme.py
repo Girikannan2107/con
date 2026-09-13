@@ -29,7 +29,12 @@ one actually resolves.
 
 from __future__ import annotations
 
-__all__ = ["PALETTE", "STYLESHEET", "NAME"]
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # pragma: no cover - typing only
+    from PyQt6.QtWidgets import QMainWindow
+
+__all__ = ["PALETTE", "STYLESHEET", "NAME", "prepare", "dress"]
 
 #: What to call this look where an operator can see it.
 NAME = "Deep navy / teal"
@@ -328,3 +333,35 @@ QToolTip {{
     padding: 6px;
 }}
 """
+
+
+def prepare() -> None:
+    """Repoint the shared colours. Call this *before* building a window.
+
+    Half of a re-skin cannot be delivered by a style sheet: badges, KPI values,
+    chart series and the brand mark read the palette in their constructors, so
+    the palette has to be in place before any of them is built.
+    """
+    from .theme import apply_palette
+
+    apply_palette(PALETTE)
+
+
+def dress(window: "QMainWindow") -> None:
+    """Put the skin on a built window: the style sheet and the quiet header.
+
+    The mark, the avatar and the search box are hidden rather than removed from
+    :class:`ui2.components.HeaderBar`, so the header itself stays one widget
+    with one behaviour and only its appearance differs by entry point.
+
+    The search box is the only one of the three that did anything - it filtered
+    the reports table - so a dressed window trades that filter for a quieter
+    header. Every report is still reachable; they just cannot be narrowed from
+    up there.
+    """
+    window.setStyleSheet(STYLESHEET)
+    header = getattr(window, "header", None)
+    for name in ("mark", "avatar", "search"):
+        widget = getattr(header, name, None)
+        if widget is not None:
+            widget.hide()

@@ -643,22 +643,23 @@ class TestWorkflowAndInterface(unittest.TestCase):
                          Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.assertEqual(area.widget().minimumHeight(), 640)
 
-    def test_app2_stays_on_the_console_s_own_look(self) -> None:
-        """app2.py is the untouched build: it must not reach for the second skin.
+    def test_both_entry_points_wear_the_same_skin(self) -> None:
+        """Both builds are the deep-navy design, applied the same way.
 
-        app.py now carries the same capabilities in the deep-navy design, and
-        the two are only distinguishable because the re-skin is applied by the
-        entry point rather than baked into the controller they share.
+        The skin is two steps that have to happen either side of construction,
+        so both entry points call gov_theme.prepare() and gov_theme.dress()
+        rather than each spelling the sequence out - one of them would drift.
         """
         import app
         import app2
 
-        self.assertTrue(hasattr(app, "main"))
-        self.assertTrue(hasattr(app2, "main"))
-        with open(app2.__file__, encoding="utf-8") as handle:
-            source = handle.read()
-        self.assertNotIn("gov_theme", source)
-        self.assertNotIn("apply_palette", source)
+        for module in (app, app2):
+            self.assertTrue(hasattr(module, "main"))
+            self.assertTrue(hasattr(module, "build_window"))
+            with open(module.__file__, encoding="utf-8") as handle:
+                source = handle.read()
+            self.assertIn("gov_theme.prepare()", source)
+            self.assertIn("gov_theme.dress(window)", source)
 
 
 def _result(reference: str, text: str, **fields) -> PipelineResult:

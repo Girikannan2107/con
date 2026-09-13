@@ -871,26 +871,22 @@ class TestDeepNavyBuild(unittest.TestCase):
                 area.widget().width(), area.viewport().width() + 1,
                 "a field value has pushed the case wider than the pane holding it")
 
-    def test_the_header_ornament_is_stripped_here_but_not_in_the_other_build(self) -> None:
-        """The mark, avatar and search box are hidden for this build only."""
+    def test_both_entry_points_build_the_same_window(self) -> None:
+        """app.py and app2.py must be indistinguishable in appearance."""
         import app
-        import main2
+        import app2
+        from ui import gov_theme
 
-        navy = app.build_window()
-        self.addCleanup(navy.close)
-        navy.show()
-        self.app.processEvents()
-        for name in ("mark", "avatar", "search"):
-            self.assertTrue(getattr(navy.header, name).isHidden(),
-                            f"{name} should be hidden in the deep-navy build")
+        for module in (app, app2):
+            window = module.build_window()
+            self.addCleanup(window.close)
+            window.show()
+            self.app.processEvents()
 
-        blue = main2.MainWindow()
-        self.addCleanup(blue.close)
-        blue.show()
-        self.app.processEvents()
-        for name in ("mark", "avatar", "search"):
-            self.assertFalse(getattr(blue.header, name).isHidden(),
-                             f"app2.py must keep its {name}")
+            self.assertEqual(window.styleSheet(), gov_theme.STYLESHEET)
+            for name in ("mark", "avatar", "search"):
+                self.assertTrue(getattr(window.header, name).isHidden(),
+                                f"{name} should be hidden in both builds")
 
     def test_the_two_builds_are_told_apart_in_the_title_bar(self) -> None:
         import app

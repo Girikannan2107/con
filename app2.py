@@ -49,14 +49,33 @@ def _require_pyqt6() -> None:
         raise SystemExit(1)
 
 
+def build_window():
+    """Construct the console in the deep-navy design.
+
+    The palette goes on before the window is built and the style sheet after -
+    that order is the mechanism, because every widget that styles itself reads
+    the palette in its constructor. Both entry points call the same two steps,
+    so the two windows cannot drift apart in appearance.
+    """
+    from ui import gov_theme
+
+    gov_theme.prepare()
+
+    from main2 import MainWindow
+
+    window = MainWindow()
+    gov_theme.dress(window)
+    return window
+
+
 def main(argv: list[str] | None = None) -> int:
     """Launch build 2 and return the Qt exit code."""
     _require_pyqt6()
 
-    from main2 import MainWindow, create_application
+    from main2 import create_application
 
     app = create_application(argv if argv is not None else sys.argv)
-    window = MainWindow()
+    window = build_window()
     window.show()
     return app.exec()
 
