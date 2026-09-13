@@ -136,13 +136,13 @@ class Sidebar(QFrame):
     def _footer() -> QWidget:
         card = QFrame()
         card.setStyleSheet(
-            f"background-color: {C.OK_WASH}; border: 1px solid {C.OK};"
+            f"background-color: {C.RAIL_WASH}; border: 1px solid {C.RAIL_LINE};"
             "border-radius: 10px;")
         layout = QVBoxLayout(card)
         layout.setContentsMargins(14, 10, 14, 10)
         layout.setSpacing(2)
         title = QLabel("SAFETY FIRST")
-        title.setStyleSheet(f"color: {C.OK}; font-size: 10px; font-weight: 700;"
+        title.setStyleSheet(f"color: {C.RAIL_ACCENT}; font-size: 10px; font-weight: 700;"
                             "letter-spacing: 1px; border: none;")
         layout.addWidget(title)
         for line in ("No report is closed by the engine.",
@@ -179,7 +179,11 @@ def titled(page: QWidget, title: str, subtitle: str) -> QWidget:
     # The heading carries the page margin and the page keeps its own, rather
     # than the wrapper indenting both: nesting one inside the other put the
     # heading a full margin to the left of the panels it belongs to.
-    head = QWidget()
+    # A QFrame rather than a plain QWidget, and named: a style sheet background
+    # only reaches a frame, and the design this build follows sets the heading on
+    # a white band above the grey page.
+    head = QFrame()
+    head.setObjectName("PageHead")
     head_layout = QVBoxLayout(head)
     head_layout.setContentsMargins(PAGE_MARGIN, 14, PAGE_MARGIN, 0)
     head_layout.setSpacing(1)

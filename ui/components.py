@@ -32,6 +32,15 @@ from .theme import BAND_COLORS, C
 __all__ = ["KpiTile", "Panel", "Sidebar", "HeaderBar", "DataTable", "Pill", "FieldRow"]
 
 
+def _alpha(colour: str, opacity: float) -> str:
+    """``#rrggbb`` at ``opacity``, as a CSS rgba() a Qt style sheet accepts."""
+    value = colour.lstrip("#")
+    if len(value) != 6:
+        return colour
+    red, green, blue = (int(value[index:index + 2], 16) for index in (0, 2, 4))
+    return f"rgba({red}, {green}, {blue}, {opacity})"
+
+
 class Pill(QLabel):
     """A small coloured status chip (SIF-POTENTIAL, risk band, trigger)."""
 
@@ -48,9 +57,17 @@ class Pill(QLabel):
         self.updateGeometry()
 
     def set_colour(self, colour: str) -> None:
-        """Recolour the chip, keeping the translucent-fill / solid-text pairing."""
+        """Recolour the chip, keeping the translucent-fill / solid-text pairing.
+
+        The fill is the chip's own colour at a tenth of its strength, worked out
+        here rather than named in a palette: a chip is drawn in whatever colour
+        its status resolves to, and that colour is not known until it arrives.
+        Alpha rather than a mixed hex, so one rule reads correctly on a white
+        panel and on a near-black one.
+        """
         self.setStyleSheet(
-            f"color: {colour}; border: 1px solid {colour}; border-radius: 9px;"
+            f"color: {colour}; background-color: {_alpha(colour, 0.12)};"
+            f"border: 1px solid {_alpha(colour, 0.45)}; border-radius: 9px;"
             f"padding: 3px 10px; font-size: 11px; font-weight: 700;")
 
 
@@ -260,7 +277,7 @@ class Sidebar(QFrame):
         """The safety-values card that closes the rail."""
         card = QFrame()
         card.setStyleSheet(
-            f"background-color: {C.OK_WASH}; border: 1px solid {C.OK};"
+            f"background-color: {C.RAIL_WASH}; border: 1px solid {C.RAIL_LINE};"
             "border-radius: 10px;")
         layout = QVBoxLayout(card)
         layout.setContentsMargins(14, 12, 14, 12)
@@ -268,7 +285,7 @@ class Sidebar(QFrame):
 
         heading = QLabel("SAFETY FIRST")
         heading.setStyleSheet(
-            f"color: {C.OK}; font-size: 10px; font-weight: 800; letter-spacing: 1px;"
+            f"color: {C.RAIL_ACCENT}; font-size: 10px; font-weight: 800; letter-spacing: 1px;"
             "border: none;")
         layout.addWidget(heading)
         for line in ("Safety", "People", "Environment", "Sustainable Growth"):
@@ -355,6 +372,11 @@ class DataTable(QTableWidget):
     DENSITY_KEYS = {"sif_rate", "priority"}
     #: A flexible column never shrinks past this, however narrow the window gets.
     MIN_FLEX_WIDTH = 96
+    #: Headings in capitals, for a skin that asks for them. Qt style sheets have
+    #: no ``text-transform``, so a design that sets its table headings in small
+    #: capitals can only get them from here. A theme module sets this in its
+    #: ``prepare()``, before any table is built.
+    UPPERCASE_HEADERS = False
 
     def __init__(self, columns: Sequence[Tuple[str, str, int]],
                  on_select: Optional[Callable[[int], None]] = None,
@@ -371,7 +393,9 @@ class DataTable(QTableWidget):
         self._columns = list(columns)
         self._flex = [index for index, (_, key, _) in enumerate(columns)
                       if key in set(flex_keys)]
-        self.setHorizontalHeaderLabels([label for label, _, _ in columns])
+        self.setHorizontalHeaderLabels(
+            [label.upper() if self.UPPERCASE_HEADERS else label
+             for label, _, _ in columns])
         self.setAlternatingRowColors(True)
         self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)

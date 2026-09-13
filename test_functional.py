@@ -1124,6 +1124,70 @@ class TestLightBuild(unittest.TestCase):
             self.assertGreater(colour.lightness(), 170,
                                f"({x}, {y}) is dark in the light build")
 
+    def test_the_palette_is_the_supplied_design_token_for_token(self) -> None:
+        """The skin is a transcription of a design, so it is checked against it.
+
+        These are the tokens from the reference's own stylesheet. A drift in any
+        one of them is a build that no longer matches the design it was drawn
+        from, which is the kind of thing nobody notices until a demo.
+        """
+        from ui import light_theme
+
+        for name, value in (("APP", "#f0f2f5"), ("PANEL", "#ffffff"),
+                            ("PANEL_ALT", "#f8fafc"), ("BORDER", "#e2e8f0"),
+                            ("TEXT", "#0f172a"), ("TEXT_DIM", "#6b7280"),
+                            ("TEXT_FAINT", "#9ca3af"), ("ACCENT", "#2563eb"),
+                            ("ACCENT_DIM", "#1d4ed8"), ("DANGER", "#dc2626"),
+                            ("WARN", "#d97706"), ("OK", "#16a34a")):
+            self.assertEqual(light_theme.PALETTE[name], value, name)
+        # The selected nav item is a filled pale-blue pill, not a tint.
+        self.assertIn("#dbeafe", light_theme.STYLESHEET)
+        # Cards are 10px in this design, where the deep navy's are 8px.
+        self.assertIn("border-radius: 10px", light_theme.STYLESHEET)
+
+    def test_the_page_heading_sits_on_a_band_of_its_own(self) -> None:
+        """White above the grey page, as the design has it."""
+        from PyQt6.QtGui import QColor
+        from PyQt6.QtWidgets import QFrame
+
+        import app
+
+        window = app.build_window()
+        self.addCleanup(window.close)
+        window.resize(1400, 900)
+        window.show()
+        self.app.processEvents()
+        window.navigate("dashboard")
+        self.app.processEvents()
+
+        heads = [child for child in window.findChildren(QFrame)
+                 if child.objectName() == "PageHead"]
+        self.assertTrue(heads, "the page heading has no band to paint")
+        image = window.grab().toImage()
+        head = heads[0]
+        point = head.mapTo(window, head.rect().center())
+        self.assertEqual(QColor(image.pixel(point.x(), point.y())).name(), "#ffffff")
+
+    def test_column_headings_are_capitals_in_this_build_only(self) -> None:
+        """Qt cannot uppercase in a style sheet, so the skin says so in code.
+
+        The flag is global to DataTable, so the risk is that it leaks: build the
+        navy window after the light one and its headings would come out shouting
+        too. Both themes therefore set it, and this holds that.
+        """
+        import app
+        import app2
+
+        light = app.build_window()
+        self.addCleanup(light.close)
+        self.assertEqual(light.hotspot_view.table.horizontalHeaderItem(0).text(),
+                         "TYPE")
+
+        navy = app2.build_window()
+        self.addCleanup(navy.close)
+        self.assertEqual(navy.hotspot_view.table.horizontalHeaderItem(0).text(),
+                         "Type")
+
     def test_the_selected_nav_icon_is_not_white_on_a_pale_pill(self) -> None:
         """The selected icon is painted in code, so the palette has to carry it.
 

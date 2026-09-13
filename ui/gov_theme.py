@@ -75,7 +75,9 @@ PALETTE = {
     "DANGER": "#ef4444",
     "WARN": "#fbbf24",
     "OK": "#2dd4bf",
-    "OK_WASH": "rgba(45, 212, 191, 0.10)",
+    "RAIL_WASH": "rgba(45, 212, 191, 0.10)",
+    "RAIL_LINE": "#2dd4bf",
+    "RAIL_ACCENT": "#2dd4bf",
     "INFO": "#60a5fa",
 }
 
@@ -367,9 +369,14 @@ def prepare() -> None:
     chart series and the brand mark read the palette in their constructors, so
     the palette has to be in place before any of them is built.
     """
+    from .components import DataTable
     from .theme import apply_palette
 
     apply_palette(PALETTE)
+    # This design sets its column headings in sentence case; the white-and-grey
+    # one sets them in capitals. Both say so here, so whichever is prepared last
+    # is the one the tables follow.
+    DataTable.UPPERCASE_HEADERS = False
 
 
 def dress(window: "QMainWindow") -> None:

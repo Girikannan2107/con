@@ -121,14 +121,6 @@ class WorkflowMap(QWidget):
         super().__init__()
         self.cards: Dict[str, StageCard] = {}
 
-        heading = QLabel("How the console works, end to end")
-        heading.setObjectName("SectionTitle")
-        caption = QLabel(
-            "Each box is a capability and its own control. Statuses are live: they "
-            "show what is ready on this machine right now.")
-        caption.setObjectName("Faint")
-        caption.setWordWrap(True)
-
         grid = QGridLayout()
         grid.setHorizontalSpacing(10)
         grid.setVerticalSpacing(12)
@@ -149,8 +141,9 @@ class WorkflowMap(QWidget):
         layout = QVBoxLayout(content)
         layout.setContentsMargins(18, 16, 18, 16)
         layout.setSpacing(8)
-        layout.addWidget(heading)
-        layout.addWidget(caption)
+        # The heading and its caption belong to the page band above this
+        # widget (see main2's page table), not to the grid: every other page
+        # names itself up there, and this one used to name itself twice.
         # The grid takes the height its cards need and no more. Stretching it
         # to fill a tall window left each card a third full, with its status
         # line stranded at the bottom of an empty box.

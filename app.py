@@ -4,11 +4,12 @@ Run with::
 
     python app.py
 
-The same console as ``app2.py``, in the light design: white panels on a light
-grey ground, graphite as the interactive colour, solid grey borders and a
-navigation item that fills with a pale grey pill. It is the build for a lit
-room - a desk beside a window, or a projector in a hall - where the near-black
-design of ``app2.py`` washes out. Every capability is the one implementation - the
+The same console as ``app2.py``, in the supplied white-and-grey design: white
+cards on a light grey ground, blue as the interactive colour, hairline grey
+borders, a navigation item that fills with a pale blue pill and column headings
+set in small capitals. It is the build for a lit room - a desk beside a window,
+or a projector in a hall - where the near-black design of ``app2.py`` washes
+out. Every capability is the one implementation - the
 workflow map, multilingual OCR, translation, the dashboard, hotspots, the human
 review bench, analytics, training and the audit trail - so a fix to any of them
 lands in both builds at once and neither can drift into being a stale copy of
@@ -24,14 +25,16 @@ widget that paints itself:
    window is built, which catches the badges, KPI values, chart series and the
    brand mark.
 2. :data:`ui.light_theme.STYLESHEET` is set on the window afterwards, and
-   carries the structure - corner radii, the grey selection, the flat scroll
-   bars.
+   carries the structure - 10px cards, the pale blue selection, the flat scroll
+   bars, the page heading on its own white band.
 
 On a light ground the first half is what keeps the console readable rather than
 merely consistent: a badge, a chart series or a nav icon left on a dark skin's
 colour is not off-key here, it is invisible. That is why the palette carries
-``ICON_ON`` and ``OK_WASH`` as well as the surfaces - the selected navigation
-icon and the rail's safety card are painted in code, not in the style sheet.
+``ICON_ON`` and the three ``RAIL_*`` names as well as the surfaces - the
+selected navigation icon and the rail's safety card are painted in code, not in
+the style sheet. Column headings in capitals come from ``prepare()`` too, for a
+related reason: Qt style sheets have no ``text-transform``.
 
 ``app2.py`` launches the same console in the deep-navy design.
 

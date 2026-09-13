@@ -67,10 +67,13 @@ class C:
     # filled blue or a tinted teal pill and disappears on a pale grey one.
     ICON_ON = "#ffffff"
 
-    # The faint wash behind the "safety first" card in the rail. It is a fill
-    # under a border drawn in OK, so a skin that changes OK has to change this
-    # with it or the two stop matching.
-    OK_WASH = "rgba(34, 197, 94, 0.10)"
+    # The "safety first" card at the foot of the rail: a wash, a border and the
+    # colour its heading is set in. It is painted in code rather than by the
+    # style sheet, so the three travel with the palette - a skin that changes
+    # one has to change all of them or the card stops matching itself.
+    RAIL_WASH = "rgba(34, 197, 94, 0.10)"
+    RAIL_LINE = "#22c55e"
+    RAIL_ACCENT = "#22c55e"
 
     # Status.
     DANGER = "#ef4444"

@@ -512,7 +512,9 @@ class MainWindow(QMainWindow):
         self._page_index: Dict[str, int] = {}
         # An empty title means the page already opens with its own heading.
         for key, widget, title, caption in (
-                ("workflow", self.workflow, "", ""),
+                ("workflow", self.workflow, "How the console works, end to end",
+                 "Each box is a capability and its own control. Statuses are "
+                 "live: they show what is ready on this machine right now."),
                 ("ingest", self.ingest_view, "Ingest and OCR",
                  "Upload documents, extract the text, and translate it to English."),
                 ("dashboard", self.dashboard, "Dashboard",
