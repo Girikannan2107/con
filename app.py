@@ -1,12 +1,14 @@
-"""SENTRA - deep navy build. Oil India Limited, Problem Statement 26165.
+"""SENTRA - white and grey build. Oil India Limited, Problem Statement 26165.
 
 Run with::
 
     python app.py
 
-The same console as ``app2.py``, in the alternative design: a near-black navy
-ground, teal as the interactive colour, hairline borders and a navigation item
-that tints rather than fills. Every capability is the one implementation - the
+The same console as ``app2.py``, in the light design: white panels on a light
+grey ground, graphite as the interactive colour, solid grey borders and a
+navigation item that fills with a pale grey pill. It is the build for a lit
+room - a desk beside a window, or a projector in a hall - where the near-black
+design of ``app2.py`` washes out. Every capability is the one implementation - the
 workflow map, multilingual OCR, translation, the dashboard, hotspots, the human
 review bench, analytics, training and the audit trail - so a fix to any of them
 lands in both builds at once and neither can drift into being a stale copy of
@@ -21,10 +23,17 @@ widget that paints itself:
 1. :func:`ui.theme.apply_palette` repoints the shared colours *before* the
    window is built, which catches the badges, KPI values, chart series and the
    brand mark.
-2. :data:`ui.gov_theme.STYLESHEET` is set on the window afterwards, and carries
-   the structure - corner radii, the tinted selection, the flat scroll bars.
+2. :data:`ui.light_theme.STYLESHEET` is set on the window afterwards, and
+   carries the structure - corner radii, the grey selection, the flat scroll
+   bars.
 
-``app2.py`` is untouched and still launches the console's own look.
+On a light ground the first half is what keeps the console readable rather than
+merely consistent: a badge, a chart series or a nav icon left on a dark skin's
+colour is not off-key here, it is invisible. That is why the palette carries
+``ICON_ON`` and ``OK_WASH`` as well as the surfaces - the selected navigation
+icon and the rail's safety card are painted in code, not in the style sheet.
+
+``app2.py`` launches the same console in the deep-navy design.
 
 Module map
 ----------
@@ -36,8 +45,9 @@ Module map
     the generated briefs and bulletins, ``mlops`` the XGBoost model and
     ``audit`` the append-only trail.
 ``ui/``
-    Shared presentation: ``theme`` (the console's own look), ``gov_theme``
-    (this one), ``charts``, ``components``.
+    Shared presentation: ``theme`` (the console's own look and the shared
+    colour table), ``light_theme`` (this one), ``gov_theme`` (the deep navy of
+    ``app2.py``), ``charts``, ``components``.
 ``ui2/``
     The pages: navigation, workflow map, review bench, dashboards, settings.
 ``main2.py``
@@ -60,7 +70,7 @@ import sys
 
 #: Shown in the title bar, so an operator running both builds side by side can
 #: tell which window is which.
-WINDOW_TITLE = "SENTRA - deep navy"
+WINDOW_TITLE = "SENTRA - white and grey"
 
 
 def _require_pyqt6() -> None:
@@ -77,20 +87,20 @@ def _require_pyqt6() -> None:
 
 
 def build_window():
-    """Construct the console wearing the deep-navy skin.
+    """Construct the console wearing the white-and-grey skin.
 
     The palette is applied first and the window built second: that order is the
     whole mechanism, because every widget that styles itself reads the palette
     in its constructor.
     """
-    from ui import gov_theme
+    from ui import light_theme
 
-    gov_theme.prepare()
+    light_theme.prepare()
 
     from main2 import MainWindow
 
     window = MainWindow()
-    gov_theme.dress(window)
+    light_theme.dress(window)
     window.setWindowTitle(WINDOW_TITLE)
     return window
 

@@ -260,7 +260,7 @@ class Sidebar(QFrame):
         """The safety-values card that closes the rail."""
         card = QFrame()
         card.setStyleSheet(
-            f"background-color: rgba(34, 197, 94, 0.10); border: 1px solid {C.OK};"
+            f"background-color: {C.OK_WASH}; border: 1px solid {C.OK};"
             "border-radius: 10px;")
         layout = QVBoxLayout(card)
         layout.setContentsMargins(14, 12, 14, 12)
@@ -350,11 +350,27 @@ class DataTable(QTableWidget):
                     "reports", "sif_reports", "sif_rate", "priority", "mean_risk",
                     "max_risk", "confidence", "ml_probability", "rule_confidence"}
     BAND_KEYS = {"risk_score", "mean_risk", "max_risk", "risk_band"}
+    #: Percentages where a high number is bad, coloured on the same scale as risk
+    #: so a dense cluster reads as red without the operator reading the number.
+    DENSITY_KEYS = {"sif_rate", "priority"}
+    #: A flexible column never shrinks past this, however narrow the window gets.
+    MIN_FLEX_WIDTH = 96
 
     def __init__(self, columns: Sequence[Tuple[str, str, int]],
-                 on_select: Optional[Callable[[int], None]] = None) -> None:
+                 on_select: Optional[Callable[[int], None]] = None,
+                 flex_keys: Sequence[str] = ()) -> None:
+        """``flex_keys`` name the columns that share whatever width is left.
+
+        Without them a table is as wide as its schema and anything past the edge
+        needs a horizontal scrollbar - which is how the widest column ends up
+        half-visible. With them the text columns divide the leftover space in
+        proportion to their declared widths, so the table always fits the page
+        and long values elide instead of disappearing.
+        """
         super().__init__(0, len(columns))
         self._columns = list(columns)
+        self._flex = [index for index, (_, key, _) in enumerate(columns)
+                      if key in set(flex_keys)]
         self.setHorizontalHeaderLabels([label for label, _, _ in columns])
         self.setAlternatingRowColors(True)
         self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
@@ -371,8 +387,20 @@ class DataTable(QTableWidget):
         self.setHorizontalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        for index, (_, _, width) in enumerate(columns):
+        for index, (_, key, width) in enumerate(columns):
             self.setColumnWidth(index, width)
+            # A centred heading over left-aligned text reads as a misalignment,
+            # so each heading takes the alignment of the column under it.
+            header_item = self.horizontalHeaderItem(index)
+            if header_item is not None:
+                header_item.setTextAlignment(
+                    Qt.AlignmentFlag.AlignCenter if key in self.CENTRED_KEYS
+                    or key in self.BAND_KEYS else
+                    Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
+        if self._flex:
+            # The last section must not stretch as well, or it would fight the
+            # distribution below for the same pixels.
+            self.horizontalHeader().setStretchLastSection(False)
         if on_select is not None:
             self.itemSelectionChanged.connect(
                 lambda: on_select(self.currentRow()) if self.currentRow() >= 0 else None)
@@ -388,14 +416,54 @@ class DataTable(QTableWidget):
         row = self.rowCount()
         self.insertRow(row)
         for column, (_, key, _) in enumerate(self._columns):
-            item = QTableWidgetItem(self._text(payload, key, row + 1))
+            text = self._text(payload, key, row + 1)
+            item = QTableWidgetItem(text)
             tooltip = payload.get("explanation") or payload.get("reason") or ""
             if tooltip:
                 item.setToolTip(str(tooltip))
+            elif column in self._flex and text:
+                # A flexible column elides, so the full value has to stay
+                # readable somewhere.
+                item.setToolTip(text)
             if key in self.CENTRED_KEYS or key in self.BAND_KEYS:
                 item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
             self._colour(item, payload, key)
             self.setItem(row, column, item)
+
+    # -- layout ------------------------------------------------------------
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 (Qt naming)
+        super().resizeEvent(event)
+        self.fit_columns()
+
+    def fit_columns(self) -> None:
+        """Give the flexible columns the width the fixed ones did not take.
+
+        In a pane too narrow to hold even the minimums - the review bench's
+        queue, say - the columns go back to their declared widths and the table
+        scrolls as it always did. Squeezing every text column to its floor there
+        would cost width without removing the scrollbar.
+        """
+        if not self._flex:
+            return
+        flexible = set(self._flex)
+        fixed = sum(self.columnWidth(index) for index in range(self.columnCount())
+                    if index not in flexible)
+        leftover = self.viewport().width() - fixed
+        if leftover < self.MIN_FLEX_WIDTH * len(self._flex):
+            for index in self._flex:
+                self.setColumnWidth(index, self._columns[index][2])
+            return
+        weights = [self._columns[index][2] for index in self._flex]
+        total = sum(weights) or 1
+        used = 0
+        for position, index in enumerate(self._flex):
+            if position == len(self._flex) - 1:
+                width = leftover - used          # the remainder, so nothing is lost
+            else:
+                width = leftover * weights[position] // total
+                used += width
+            self.setColumnWidth(index, max(self.MIN_FLEX_WIDTH, int(width)))
 
     # -- formatting --------------------------------------------------------
 
@@ -435,6 +503,11 @@ class DataTable(QTableWidget):
                 band = ("Critical" if value >= 70 else "High" if value >= 50
                         else "Medium" if value >= 30 else "Low")
             item.setForeground(QColor(BAND_COLORS.get(str(band), C.OK)))
+        elif key in DataTable.DENSITY_KEYS:
+            value = float(payload.get(key) or 0.0)
+            band = ("Critical" if value >= 60 else "High" if value >= 40
+                    else "Medium" if value >= 20 else "Low")
+            item.setForeground(QColor(BAND_COLORS.get(band, C.OK)))
         elif key in {"review_trigger", "trigger"}:
             item.setForeground(QColor(C.WARN if payload.get(key) else C.TEXT_FAINT))
         elif key == "category":

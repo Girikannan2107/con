@@ -598,6 +598,54 @@ class TestDecisionTrailScaleAndClearing(unittest.TestCase):
         self.window.confirm_clear_trail()
         self.assertIn("already empty", " ".join(self.dialogs))
 
+    def test_the_queue_has_a_clear_of_its_own_that_asks_first(self) -> None:
+        import main2
+
+        analysed = len(self.window.rows)
+        self.assertGreater(analysed, 0)
+        self.answer = main2.QMessageBox.StandardButton.Cancel
+
+        self.window.confirm_clear_queue()
+
+        self.assertEqual(len(self.window.rows), analysed,
+                         "cancelling must not drop anything")
+        prompt = " ".join(self.dialogs)
+        self.assertIn(str(analysed), prompt)
+        self.assertIn("trail", prompt, "the dialog must say what survives")
+        self.assertIn("cannot be undone", prompt)
+
+    def test_confirming_empties_the_queue_but_keeps_the_decisions(self) -> None:
+        self._grow_trail(6)
+
+        self.window.confirm_clear_queue()
+        self.app.processEvents()
+
+        self.assertEqual(self.window.rows, [])
+        self.assertEqual(self.window.review_view.table.rowCount(), 0)
+        self.assertEqual(len(self.window.decisions.entries), 6,
+                         "clearing the queue must not touch the decision trail")
+        actions = [entry.action for entry in self.window.audit.entries(limit=0)]
+        self.assertIn("corpus cleared", actions)
+
+    def test_clearing_an_empty_queue_says_so_rather_than_asking(self) -> None:
+        self.window.clear_corpus()
+        self.dialogs.clear()
+
+        self.window.confirm_clear_queue()
+
+        self.assertIn("already empty", " ".join(self.dialogs))
+
+    def test_the_clear_button_is_wired_to_the_confirmation(self) -> None:
+        """The button must go through the dialog, not straight to the clear."""
+        self.answer = __import__("main2").QMessageBox.StandardButton.Cancel
+        analysed = len(self.window.rows)
+
+        self.window.review_view.clear_queue.click()
+        self.app.processEvents()
+
+        self.assertEqual(len(self.window.rows), analysed)
+        self.assertIn("Clear the review queue?", " ".join(self.dialogs))
+
     def test_the_clear_button_is_on_the_trail_tab_of_both_builds(self) -> None:
         import app
         import app2
@@ -750,6 +798,79 @@ class TestHotspotsPage(unittest.TestCase):
         self.assertGreater(window.hotspot_view.table.rowCount(), 0)
         self.assertFalse(window.hotspot_view.table.isHidden())
         self.assertTrue(window.hotspot_view._empty_note.isHidden())
+
+    def test_the_ten_columns_fit_the_page_instead_of_scrolling_sideways(self) -> None:
+        """No horizontal scrollbar, so the last column is not half a column.
+
+        Ten fixed widths add up to more than the page is wide, and what falls
+        off the right-hand edge is "Dominant barrier" - the column that says
+        which control keeps failing, which is the point of the page.
+        """
+        from main import read_csv_reports
+        import main2
+
+        window = main2.MainWindow()
+        self.addCleanup(window.close)
+        window.resize(1440, 900)
+        window.show()
+        self.app.processEvents()
+        narratives, references = read_csv_reports(CSV_SAMPLE)
+        window._start(window._analysis_worker(texts=narratives, references=references))
+        self.assertTrue(window.worker.wait(180_000))
+        self.app.processEvents()
+        window.navigate("hotspots")
+        self.app.processEvents()
+
+        table = window.hotspot_view.table
+        total = sum(table.columnWidth(column) for column in range(table.columnCount()))
+        self.assertLessEqual(total, table.viewport().width(),
+                             "the hotspot grid is wider than the page it sits on")
+        self.assertFalse(table.horizontalScrollBar().isVisible())
+        # Every column still has a usable width - fitting must not mean hiding.
+        for column in range(table.columnCount()):
+            self.assertGreaterEqual(table.columnWidth(column), 50)
+
+    def test_an_elided_cell_keeps_its_full_value_in_a_tooltip(self) -> None:
+        from main import read_csv_reports
+        import main2
+        from ui.views import HOTSPOT_COLUMNS
+
+        window = main2.MainWindow()
+        self.addCleanup(window.close)
+        window.show()
+        self.app.processEvents()
+        narratives, references = read_csv_reports(CSV_SAMPLE)
+        window._start(window._analysis_worker(texts=narratives, references=references))
+        self.assertTrue(window.worker.wait(180_000))
+        self.app.processEvents()
+
+        barrier = [key for _, key, _ in HOTSPOT_COLUMNS].index("top_barrier")
+        item = window.hotspot_view.table.item(0, barrier)
+        self.assertTrue(item.toolTip(), "a column that elides needs its value somewhere")
+        self.assertEqual(item.toolTip(), item.text())
+
+    def test_a_populated_page_says_what_it_adds_up_to(self) -> None:
+        from main import read_csv_reports
+        import main2
+
+        window = main2.MainWindow()
+        self.addCleanup(window.close)
+        window.show()
+        self.app.processEvents()
+        narratives, references = read_csv_reports(CSV_SAMPLE)
+        window._start(window._analysis_worker(texts=narratives, references=references))
+        self.assertTrue(window.worker.wait(180_000))
+        self.app.processEvents()
+
+        summary = window.hotspot_view.summary
+        rows = window.hotspot_view.table.rowCount()
+        self.assertFalse(summary.isHidden())
+        self.assertIn(f"{rows} repeat cluster", summary.text())
+        self.assertIn("Densest:", summary.text())
+
+        window.clear_corpus()
+        self.app.processEvents()
+        self.assertTrue(summary.isHidden(), "a cleared page must not keep a stale count")
 
 
 @unittest.skipUnless(HAS_PYQT, "PyQt6 is not installed")
@@ -922,13 +1043,14 @@ class TestTranslationWithoutAManualProbe(unittest.TestCase):
 
 
 @unittest.skipUnless(HAS_PYQT, "PyQt6 is not installed")
-class TestDeepNavyBuild(unittest.TestCase):
-    """app.py: the same console as app2.py, wearing the second skin.
+class TestLightBuild(unittest.TestCase):
+    """app.py: the same console as app2.py, wearing the white-and-grey skin.
 
     The point of the re-skin being an entry-point concern rather than a second
     controller is that neither build can quietly lose a capability the other
-    has. These tests hold that: the window app.py builds is the full one, and
-    the palette really does move.
+    has. These tests hold that: the window app.py builds is the full one, the
+    palette really does move, and nothing in it is still painted for a dark
+    ground - which on white is the difference between off-key and unreadable.
     """
 
     @classmethod
@@ -967,16 +1089,60 @@ class TestDeepNavyBuild(unittest.TestCase):
 
     def test_the_skin_actually_changes_the_palette(self) -> None:
         import app
-        from ui import gov_theme
+        from ui import light_theme
         from ui.theme import C
 
         before = C.ACCENT
         window = app.build_window()
         self.addCleanup(window.close)
 
-        self.assertEqual(C.ACCENT, gov_theme.PALETTE["ACCENT"])
-        self.assertNotEqual(C.ACCENT, before, "the second skin must not be the first")
-        self.assertIn("14b8a6", window.styleSheet())
+        self.assertEqual(C.ACCENT, light_theme.PALETTE["ACCENT"])
+        self.assertNotEqual(C.ACCENT, before, "the light skin must not be the first")
+        self.assertIn(light_theme.PALETTE["APP"], window.styleSheet())
+
+    def test_the_light_build_is_actually_light(self) -> None:
+        """The ground is pale and the text is dark, measured off the window.
+
+        A skin that only half-applies leaves dark widgets on a white page, so
+        this reads the rendered pixels rather than the style sheet: the top-left
+        of the shell has to be a light colour, not a navy one.
+        """
+        from PyQt6.QtGui import QColor
+
+        import app
+
+        window = app.build_window()
+        self.addCleanup(window.close)
+        window.resize(1400, 900)
+        window.show()
+        self.app.processEvents()
+
+        image = window.grab().toImage()
+        for x, y in ((6, 6), (400, 500), (1100, 700)):
+            colour = QColor(image.pixel(min(x, image.width() - 1),
+                                        min(y, image.height() - 1)))
+            self.assertGreater(colour.lightness(), 170,
+                               f"({x}, {y}) is dark in the light build")
+
+    def test_the_selected_nav_icon_is_not_white_on_a_pale_pill(self) -> None:
+        """The selected icon is painted in code, so the palette has to carry it.
+
+        White on the deep navy's teal wash is right; white on this design's pale
+        grey selection is an empty pill. The colour therefore lives in the
+        palette rather than in the icon routine.
+        """
+        from PyQt6.QtGui import QColor
+
+        import app
+        from ui import light_theme
+        from ui.theme import C
+
+        window = app.build_window()
+        self.addCleanup(window.close)
+
+        self.assertEqual(C.ICON_ON, light_theme.PALETTE["ICON_ON"])
+        self.assertLess(QColor(C.ICON_ON).lightness(), 128,
+                        "a pale icon on a pale selection is invisible")
 
     def test_a_long_field_value_cannot_widen_the_detail_panel(self) -> None:
         """A long barrier list must elide, not push the panel past its pane.
@@ -1016,22 +1182,28 @@ class TestDeepNavyBuild(unittest.TestCase):
                 area.widget().width(), area.viewport().width() + 1,
                 "a field value has pushed the case wider than the pane holding it")
 
-    def test_both_entry_points_build_the_same_window(self) -> None:
-        """app.py and app2.py must be indistinguishable in appearance."""
+    def test_each_entry_point_builds_its_own_design(self) -> None:
+        """Two designs, and both dressed the same way.
+
+        The style sheets differ by entry point - that is the point of there
+        being two - but everything the dressing does beyond colour has to
+        happen in both, or the quiet header is a feature of one build only.
+        """
         import app
         import app2
-        from ui import gov_theme
+        from ui import gov_theme, light_theme
 
-        for module in (app, app2):
+        for module, theme in ((app, light_theme), (app2, gov_theme)):
             window = module.build_window()
             self.addCleanup(window.close)
             window.show()
             self.app.processEvents()
 
-            self.assertEqual(window.styleSheet(), gov_theme.STYLESHEET)
+            self.assertEqual(window.styleSheet(), theme.STYLESHEET)
             for name in ("mark", "avatar", "search"):
                 self.assertTrue(getattr(window.header, name).isHidden(),
                                 f"{name} should be hidden in both builds")
+        self.assertNotEqual(light_theme.STYLESHEET, gov_theme.STYLESHEET)
 
     def test_the_two_builds_are_told_apart_in_the_title_bar(self) -> None:
         import app

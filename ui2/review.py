@@ -63,6 +63,10 @@ QUEUE_COLUMNS: Sequence[Tuple[str, str, int]] = (
     ("Why a human is needed", "reason", 174),
 )
 
+#: The reason column takes whatever the fixed ones leave, so the queue fits the
+#: bench's left pane instead of scrolling sideways inside it.
+QUEUE_FLEX: Sequence[str] = ("reason",)
+
 TRAIL_COLUMNS: Sequence[Tuple[str, str, int]] = (
     ("Decided", "decided_short", 104),
     ("Ref", "reference", 78),
@@ -71,6 +75,9 @@ TRAIL_COLUMNS: Sequence[Tuple[str, str, int]] = (
     ("Reviewer", "reviewer", 108),
     ("Note", "note", 260),
 )
+
+#: Same reasoning for the trail: the note is what gives, not the tab.
+TRAIL_FLEX: Sequence[str] = ("note",)
 
 #: Button text, decision key, colour and shortcut - one row per decision.
 DECISION_BUTTONS = (
@@ -88,6 +95,7 @@ class ReviewView(QWidget):
     undo_requested = pyqtSignal()
     export_requested = pyqtSignal()
     clear_trail_requested = pyqtSignal()
+    clear_queue_requested = pyqtSignal()
     reviewer_changed = pyqtSignal(str)
     #: Row index within the currently displayed queue.
     row_selected = pyqtSignal(int)
@@ -132,9 +140,26 @@ class ReviewView(QWidget):
             "Decided reports leave the queue. Tick this to bring them back into "
             "view - to check a colleague's call, or to change your own.")
 
-        self.table = DataTable(QUEUE_COLUMNS, on_select=self._on_row)
+        # The queue's own clear, beside the filter that governs what it shows.
+        # It empties the analysed corpus the queue is drawn from; the decision
+        # trail has its own clear on the next tab and is untouched by this one.
+        self.clear_queue = QPushButton("Clear the queue")
+        self.clear_queue.setToolTip(
+            "Drop every analysed report, so the bench starts empty. Decisions "
+            "already recorded stay in the trail.")
+        self.clear_queue.clicked.connect(self.clear_queue_requested.emit)
+
+        filter_row = QHBoxLayout()
+        filter_row.setContentsMargins(0, 0, 0, 0)
+        filter_row.setSpacing(8)
+        filter_row.addWidget(self.show_decided)
+        filter_row.addStretch(1)
+        filter_row.addWidget(self.clear_queue)
+
+        self.table = DataTable(QUEUE_COLUMNS, on_select=self._on_row,
+                               flex_keys=QUEUE_FLEX)
         queue_layout.addWidget(self.progress)
-        queue_layout.addWidget(self.show_decided)
+        queue_layout.addLayout(filter_row)
         queue_layout.addWidget(self.table, stretch=1)
 
         trail_page = QWidget()
@@ -146,7 +171,7 @@ class ReviewView(QWidget):
             "their earlier entry: the trail is what an auditor reads.")
         trail_caption.setObjectName("Faint")
         trail_caption.setWordWrap(True)
-        self.trail_table = DataTable(TRAIL_COLUMNS)
+        self.trail_table = DataTable(TRAIL_COLUMNS, flex_keys=TRAIL_FLEX)
         #: Identifies what the trail table currently shows, so an unchanged
         #: trail is not rebuilt row by row on every refresh.
         self._trail_signature: Optional[Tuple[int, Optional[Dict[str, object]]]] = None

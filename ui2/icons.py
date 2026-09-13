@@ -7,8 +7,9 @@ they render identically on any machine with Qt and cannot fall back to
 anything.
 
 Each icon is drawn inside an 18x18 logical box with a rounded 1.6px stroke, and
-is produced twice - dim for a resting item, white for the selected one - so the
-filled pill in :mod:`ui.theme` gets an icon that stays legible on top of it.
+is produced twice - dim for a resting item and in ``C.ICON_ON`` for the selected
+one - so whatever the current skin fills its selected pill with, the icon on top
+of it stays legible.
 """
 
 from __future__ import annotations
@@ -144,6 +145,6 @@ def nav_icon(key: str) -> QIcon:
         return icon
     icon.addPixmap(_pixmap(key, C.TEXT_DIM), QIcon.Mode.Normal, QIcon.State.Off)
     icon.addPixmap(_pixmap(key, C.TEXT), QIcon.Mode.Active, QIcon.State.Off)
-    icon.addPixmap(_pixmap(key, "#ffffff"), QIcon.Mode.Normal, QIcon.State.On)
-    icon.addPixmap(_pixmap(key, "#ffffff"), QIcon.Mode.Active, QIcon.State.On)
+    icon.addPixmap(_pixmap(key, C.ICON_ON), QIcon.Mode.Normal, QIcon.State.On)
+    icon.addPixmap(_pixmap(key, C.ICON_ON), QIcon.Mode.Active, QIcon.State.On)
     return icon

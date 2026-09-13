@@ -62,6 +62,16 @@ class C:
     SCROLL_THUMB = "#8fa8c0"
     SCROLL_THUMB_HOVER = "#b9cde0"
 
+    # The icon inside a selected navigation item. It sits on the selection
+    # itself, not on the rail, so it is a colour of its own: white works on a
+    # filled blue or a tinted teal pill and disappears on a pale grey one.
+    ICON_ON = "#ffffff"
+
+    # The faint wash behind the "safety first" card in the rail. It is a fill
+    # under a border drawn in OK, so a skin that changes OK has to change this
+    # with it or the two stop matching.
+    OK_WASH = "rgba(34, 197, 94, 0.10)"
+
     # Status.
     DANGER = "#ef4444"
     WARN = "#f59e0b"
@@ -213,6 +223,26 @@ QComboBox QAbstractItemView {{
 /* Transparent like QLabel: a checkbox inside a panel otherwise paints the app
    background across the row and reads as a stripe through the card. */
 QCheckBox {{ spacing: 8px; background: transparent; }}
+/* The indicator has to be drawn here. A style sheet rule anywhere on QCheckBox
+   puts Qt's own drawing aside, and an unstyled indicator then arrives as an
+   invisible square - a toggle nobody can see the state of. */
+QCheckBox::indicator {{
+    width: 15px;
+    height: 15px;
+    border: 1px solid {C.SCROLL_THUMB};
+    border-radius: 3px;
+    background-color: {C.PANEL};
+}}
+QCheckBox::indicator:hover {{ border-color: {C.ACCENT}; }}
+QCheckBox::indicator:checked {{
+    background-color: {C.ACCENT};
+    border-color: {C.ACCENT};
+    image: url({ASSETS}/check.svg);
+}}
+QCheckBox::indicator:disabled {{
+    border-color: {C.BORDER_SOFT};
+    background-color: {C.PANEL_ALT};
+}}
 
 QTableWidget {{
     background-color: {C.PANEL};

@@ -61,7 +61,7 @@ from sif.review import DECISION_LABELS, DECISION_SHORT, DecisionLog, fingerprint
 from sif.updater import UpdateChecker, UpdateInfo
 from sif.version import __version__, describe
 from ui.theme import PAGE_MARGIN, C, STYLESHEET
-from ui.views import HOTSPOT_COLUMNS, AnalyticsView, TableView
+from ui.views import HOTSPOT_COLUMNS, HOTSPOT_FLEX, AnalyticsView, TableView
 from ui2.components import HeaderBar, Sidebar, titled
 from ui2.review import ReviewView
 from ui2.views import DashboardView, EnginesView, IngestView, ReportView, SettingsView
@@ -496,7 +496,7 @@ class MainWindow(QMainWindow):
             "Risk hotspots",
             "Sites, activities, rule-at-location repeats and barrier failures occurring "
             "more than once, ranked by SIF-precursor density.",
-            HOTSPOT_COLUMNS, heading=False,
+            HOTSPOT_COLUMNS, heading=False, flex_keys=HOTSPOT_FLEX,
             empty_note="No hotspots yet. A hotspot is a repeat, so one needs at least "
                        "two reports that share a site, an activity, a rule-at-location "
                        "or a failed barrier. Analyse more of the corpus and they appear "
@@ -627,6 +627,7 @@ class MainWindow(QMainWindow):
         self.review_view.undo_requested.connect(self.undo_decision)
         self.review_view.export_requested.connect(self.export_decisions)
         self.review_view.clear_trail_requested.connect(self.confirm_clear_trail)
+        self.review_view.clear_queue_requested.connect(self.confirm_clear_queue)
         self.review_view.reviewer_changed.connect(self.set_reviewer)
         self.review_view.show_decided.stateChanged.connect(lambda _: self._refresh())
 
@@ -1358,9 +1359,35 @@ class MainWindow(QMainWindow):
         report = self.mlops.last_report
         self.analytics_view.update_model(self.mlops.status()["model"],
                                          report.importances if report else [])
-        self.hotspot_view.set_rows([spot.to_dict() for spot in intelligence.hotspots])
+        self._show_hotspots(intelligence.hotspots)
         self._refresh_workflow()
         return intelligence
+
+    #: A cluster at or above this SIF density is called out in the summary line.
+    HOTSPOT_DENSE = 60.0
+
+    def _show_hotspots(self, hotspots) -> None:
+        """Fill the hotspot grid and say, in one line, what it adds up to.
+
+        The grid is ranked by density, so the summary names the top of it: how
+        many repeats there are, how many of them are dense enough to act on, and
+        which one leads. Without it the page is ten columns of numbers with no
+        statement of what the operator is looking at.
+        """
+        rows = [spot.to_dict() for spot in hotspots]
+        self.hotspot_view.set_rows(rows)
+        if not rows:
+            return
+        dense = sum(1 for row in rows if float(row.get("sif_rate") or 0.0)
+                    >= self.HOTSPOT_DENSE)
+        leader = rows[0]
+        self.hotspot_view.set_summary(
+            f"{len(rows)} repeat cluster(s) across sites, activities, "
+            f"rule-at-location pairs and barrier failures.  "
+            f"{dense} at or above {self.HOTSPOT_DENSE:.0f}% SIF density.  "
+            f"Densest: {leader.get('label', '')} ({leader.get('kind', '')}) - "
+            f"{float(leader.get('sif_rate') or 0.0):.0f}% of "
+            f"{leader.get('reports', 0)} report(s).")
 
     # -- human review ------------------------------------------------------
 
@@ -1456,6 +1483,38 @@ class MainWindow(QMainWindow):
         LOGGER.warning("Review trail cleared by the operator (%d discarded)", discarded)
         self._refresh()
         self._set_status(f"Cleared the decision trail - {discarded} decision(s) discarded")
+
+    def confirm_clear_queue(self) -> None:
+        """Ask before emptying the review queue, and say what survives it.
+
+        The queue is a view of the analysed corpus, so clearing it clears the
+        corpus - every report, not only the ones awaiting a call. That is worth
+        spelling out, and so is what is *not* lost: the decision trail, and with
+        it the labels the model trains on, stay where they are.
+        """
+        analysed = len(self.rows)
+        if not analysed:
+            QMessageBox.information(self, APP_NAME, "The review queue is already empty.")
+            return
+
+        outstanding = len(self.queue_rows)
+        answer = QMessageBox.warning(
+            self, APP_NAME,
+            f"Clear the review queue?\n\n"
+            f"This drops all {analysed} analysed report(s), including the "
+            f"{outstanding} listed on the bench right now, and empties the dashboard, the "
+            f"report matrix and the hotspots with them.\n\nDecisions already "
+            f"recorded stay in the trail, and the documents on the ingest page are "
+            f"not affected - they can be analysed again. This cannot be undone.",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel)
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+
+        LOGGER.warning("Review queue cleared by the operator (%d report(s))", analysed)
+        self.clear_corpus()
+        self._set_status(f"Cleared the review queue - {analysed} analysed report(s) "
+                         f"dropped. The decision trail is untouched.")
 
     def record_decision(self, decision: str, note: str) -> None:
         """The reviewer called the selected report."""

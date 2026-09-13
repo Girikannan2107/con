@@ -4,7 +4,9 @@ Oil India Limited - Problem Statement 26165.
 
     python app2.py
 
-``app.py`` is untouched and still runs the original console. This build adds:
+``app.py`` runs the same console in the white-and-grey design; this one is the
+deep navy. The two differ in appearance only - one controller, one set of
+pages, one copy of every rule. This build carries:
 
 * a **workflow map** - every capability in one picture, each with a live status
   and its own control, so the path from a scanned report to a trained model is
@@ -54,8 +56,9 @@ def build_window():
 
     The palette goes on before the window is built and the style sheet after -
     that order is the mechanism, because every widget that styles itself reads
-    the palette in its constructor. Both entry points call the same two steps,
-    so the two windows cannot drift apart in appearance.
+    the palette in its constructor. ``app.py`` performs the same two steps with
+    :mod:`ui.light_theme`, so the two builds differ by a palette and a style
+    sheet and by nothing else.
     """
     from ui import gov_theme
 

@@ -32,7 +32,8 @@ from .charts import DonutChart, HBarChart
 from .components import DataTable, FieldRow, KpiTile, Panel, Pill
 from .theme import BAND_COLORS, C
 
-__all__ = ["MATRIX_COLUMNS", "HOTSPOT_COLUMNS", "REVIEW_COLUMNS", "DashboardView",
+__all__ = ["MATRIX_COLUMNS", "HOTSPOT_COLUMNS", "HOTSPOT_FLEX", "REVIEW_COLUMNS",
+           "DashboardView",
            "TableView", "BatchUploadView", "AnalyticsView", "SettingsView"]
 
 MATRIX_COLUMNS: Sequence[Tuple[str, str, int]] = (
@@ -50,18 +51,26 @@ MATRIX_COLUMNS: Sequence[Tuple[str, str, int]] = (
     ("Narrative", "raw_text", 320),
 )
 
+#: The hotspot grid. The numeric columns are sized to their widest reading and
+#: stay put; the three text columns are flexible (see ``HOTSPOT_FLEX``), so the
+#: ten columns always fit the page instead of pushing the last one behind a
+#: horizontal scrollbar. The declared widths of the flexible columns are the
+#: proportions they divide the leftover space by.
 HOTSPOT_COLUMNS: Sequence[Tuple[str, str, int]] = (
-    ("Type", "kind", 140),
-    ("Cluster", "label", 300),
-    ("Reports", "reports", 72),
+    ("Type", "kind", 176),
+    ("Cluster", "label", 280),
+    ("Reports", "reports", 74),
     ("SIF", "sif_reports", 56),
-    ("Density", "sif_rate", 74),
-    ("Priority", "priority", 74),
-    ("Mean risk", "mean_risk", 84),
-    ("Peak risk", "max_risk", 84),
+    ("Density", "sif_rate", 78),
+    ("Priority", "priority", 78),
+    ("Mean risk", "mean_risk", 86),
+    ("Peak risk", "max_risk", 86),
     ("Dominant rule", "top_rule", 180),
-    ("Dominant barrier", "top_barrier", 240),
+    ("Dominant barrier", "top_barrier", 260),
 )
+
+#: Hotspot columns that share whatever width the fixed ones leave.
+HOTSPOT_FLEX: Sequence[str] = ("label", "top_rule", "top_barrier")
 
 REVIEW_COLUMNS: Sequence[Tuple[str, str, int]] = (
     ("Trigger", "trigger", 150),
@@ -465,16 +474,26 @@ class TableView(QWidget):
 
     def __init__(self, title: str, subtitle: str,
                  columns: Sequence[Tuple[str, str, int]],
-                 heading: bool = True, empty_note: str = "") -> None:
+                 heading: bool = True, empty_note: str = "",
+                 flex_keys: Sequence[str] = ()) -> None:
         """``heading`` off when the page already carries the same title above."""
         super().__init__()
         self.panel = Panel(title if heading else "")
-        self.table = DataTable(columns)
+        self.table = DataTable(columns, flex_keys=flex_keys)
         if heading:
             caption = QLabel(subtitle)
             caption.setObjectName("Faint")
             caption.setWordWrap(True)
             self.panel.add(caption)
+
+        # One line of context above the grid, so a populated page says how much
+        # there is and where the worst of it sits without the operator counting
+        # rows. Empty until there is something to count.
+        self.summary = QLabel("")
+        self.summary.setObjectName("Faint")
+        self.summary.setWordWrap(True)
+        self.summary.setVisible(False)
+        self.panel.add(self.summary)
 
         # An empty table with no explanation reads as a broken page. This says
         # which it is - nothing analysed yet, or analysed and nothing qualified.
@@ -497,6 +516,13 @@ class TableView(QWidget):
         self.table.set_rows(payloads)
         self._empty_note.setVisible(bool(self._empty_text) and not payloads)
         self.table.setVisible(bool(payloads))
+        if not payloads:
+            self.set_summary("")
+
+    def set_summary(self, text: str) -> None:
+        """Set (or clear) the one-line summary shown above the grid."""
+        self.summary.setText(text)
+        self.summary.setVisible(bool(text))
 
 
 class BatchUploadView(QWidget):

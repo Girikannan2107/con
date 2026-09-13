@@ -1,30 +1,28 @@
-"""The second skin: near-black navy with a teal accent.
+"""The third skin: white and grey, for a lit room.
 
-Same console, different clothes. :mod:`ui.theme` is the console's own look -
-mid navy, blue accent, 12px cards. This is the alternative design: a much
-darker ground (#050d1a), teal as the interactive colour, hairline borders drawn
-in white alpha rather than a solid navy, tighter corners, and a navigation item
-that tints rather than fills when it is selected.
+:mod:`ui.theme` is mid navy, :mod:`ui.gov_theme` is near-black navy with teal.
+Both assume a dim control room. This one assumes the opposite: a white page on
+a light grey ground, the way a printed government form looks, for a screen
+beside a window or a projector in a bright hall.
 
-It exists as a separate module rather than as options inside ``ui.theme``
-because the two are whole designs, not variants of one: almost every rule
-differs, and interleaving them behind conditionals would leave neither
-readable.
+A light design is not a dark one with the colours flipped. Three things have to
+change with the ground or the console stops being readable:
 
-Two halves, and both are needed for a complete re-skin:
+* **Status colours.** Amber ``#fbbf24`` and teal ``#2dd4bf`` are chosen to glow
+  on near-black. On white they are close to invisible, so every status colour
+  here is a darker, denser version of the same hue - the meaning survives, the
+  contrast comes back.
+* **Separation.** Dark skins separate a card from its ground with a white-alpha
+  hairline. On white there is nothing to lighten, so the card *is* the white
+  and the ground is the grey, with a solid grey border to close it.
+* **The selected navigation item.** White-on-teal does not exist here; the
+  selection is a pale grey pill with graphite text, and the icon on it is
+  graphite too (``ICON_ON``), not white.
 
-``PALETTE``
-    Handed to :func:`ui.theme.apply_palette` *before* a window is built, so the
-    widgets that paint themselves - badges, KPI values, chart series, the brand
-    mark - pick these colours up too. A style sheet alone cannot reach them.
-``STYLESHEET``
-    Set on the window after it is built. Structure as well as colour: corner
-    radii, the tinted selection, the flat scroll bars.
-
-Fonts are named in the design as Instrument Sans, Inter and DM Mono. Those are
-web fonts and will not be installed on a plant workstation, so each is given
-the platform's own stack behind it and the layout is built to survive whichever
-one actually resolves.
+The accent is graphite rather than a colour, because the request was white and
+grey: the interactive colour is the darkest thing on the page, which on a light
+ground reads as "press this" without adding a hue. The status colours stay
+coloured - they carry meaning, not styling - and the brand red stays the brand.
 """
 
 from __future__ import annotations
@@ -39,53 +37,57 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
 __all__ = ["PALETTE", "STYLESHEET", "NAME", "prepare", "dress"]
 
 #: What to call this look where an operator can see it.
-NAME = "Deep navy / teal"
+NAME = "White / grey"
 
-#: Design tokens, straight from the reference. Names match :class:`ui.theme.C`
-#: so the mapping can be applied without translation.
+#: Design tokens. Names match :class:`ui.theme.C` so the mapping can be applied
+#: without translation.
 PALETTE = {
-    # Surfaces. The reference ground is near black, and the cards sit only just
-    # above it - the separation is carried by the border, not by brightness.
-    "APP": "#050d1a",
-    "SIDEBAR": "#080e1f",
-    "HEADER": "#080e1f",
-    "PANEL": "#0d1829",
-    "PANEL_ALT": "#0f1d30",
-    "CARD": "#132035",
-    "BORDER": "#1d2c42",
-    "BORDER_SOFT": "#152134",
+    # Surfaces. The ground is grey and the content is white - the reverse of
+    # the dark skins, where the ground is darkest and the cards lift off it.
+    "APP": "#eef1f5",
+    "SIDEBAR": "#ffffff",
+    "HEADER": "#ffffff",
+    "PANEL": "#ffffff",
+    "PANEL_ALT": "#f5f7fa",
+    "CARD": "#ffffff",
+    "BORDER": "#d6dce5",
+    "BORDER_SOFT": "#e4e9f0",
 
-    "TEXT": "#e6ebf2",
-    "TEXT_DIM": "#8a97a8",
-    "TEXT_FAINT": "#5d6a7c",
+    # Text. Near-black rather than black: full black on white vibrates.
+    "TEXT": "#111a26",
+    "TEXT_DIM": "#4f5b6b",
+    "TEXT_FAINT": "#7b8798",
 
-    "BRAND": "#e63329",
-    "ACCENT": "#14b8a6",
-    "ACCENT_SOFT": "#2dd4bf",
-    "ACCENT_DIM": "#0d9488",
-    "BLUE": "#60a5fa",
-    "PURPLE": "#a78bfa",
-    # White on the teal wash behind a selected nav item.
-    "ICON_ON": "#ffffff",
+    "BRAND": "#c62828",
+    # Graphite, not a hue. Dark enough to sit under white text.
+    "ACCENT": "#1f2d3d",
+    "ACCENT_SOFT": "#33465c",
+    "ACCENT_DIM": "#4a5b70",
+    "BLUE": "#1d4ed8",
+    "PURPLE": "#6d28d9",
+    # Graphite on the pale grey selection: white would vanish.
+    "ICON_ON": "#111a26",
 
-    "SCROLL_TRACK": "#050d1a",
-    "SCROLL_THUMB": "#243d5e",
-    "SCROLL_THUMB_HOVER": "#31527d",
+    "SCROLL_TRACK": "#eef1f5",
+    "SCROLL_THUMB": "#c2cad6",
+    "SCROLL_THUMB_HOVER": "#9aa5b5",
 
-    "DANGER": "#ef4444",
-    "WARN": "#fbbf24",
-    "OK": "#2dd4bf",
-    "OK_WASH": "rgba(45, 212, 191, 0.10)",
-    "INFO": "#60a5fa",
+    # Status, darkened for white. Same meanings, same order of severity.
+    "DANGER": "#c62828",
+    "WARN": "#b45309",
+    "OK": "#0f766e",
+    "INFO": "#1d4ed8",
+    "OK_WASH": "rgba(15, 118, 110, 0.08)",
 }
 
 _C = PALETTE
-#: Hairlines. The reference draws every border in white alpha, which keeps a
-#: card readable against the near-black ground without a visible frame round it.
-_EDGE = "rgba(255, 255, 255, 0.07)"
-_EDGE_SOFT = "rgba(255, 255, 255, 0.04)"
-#: The selected navigation item is a teal wash, not a solid block.
-_TINT = "rgba(20, 184, 166, 0.13)"
+#: Solid grey hairlines. There is no lighter colour than white to draw an edge
+#: in, so on this ground a border is darker than what it encloses.
+_EDGE = "#d6dce5"
+_EDGE_SOFT = "#e4e9f0"
+#: The selected navigation item: a pale grey pill, not a block of colour.
+_TINT = "#e7ebf1"
+_HOVER = "#f2f5f8"
 _FONT = '"Inter", "Segoe UI", "DejaVu Sans", Arial, sans-serif'
 _DISPLAY = '"Instrument Sans", "Inter", "Segoe UI", Arial, sans-serif'
 
@@ -97,9 +99,12 @@ QWidget {{
     font-size: 13px;
 }}
 QLabel {{ background: transparent; border: none; }}
-QFrame#Sidebar {{ background-color: {_C["SIDEBAR"]}; }}
+QFrame#Sidebar {{
+    background-color: {_C["SIDEBAR"]};
+    border-right: 1px solid {_EDGE};
+}}
 QSplitter#Shell::handle {{ background-color: {_EDGE}; }}
-QSplitter#Shell::handle:hover {{ background-color: {_C["ACCENT"]}; }}
+QSplitter#Shell::handle:hover {{ background-color: {_C["ACCENT_DIM"]}; }}
 QFrame#Header {{
     background-color: {_C["HEADER"]};
     border-bottom: 1px solid {_EDGE};
@@ -109,12 +114,7 @@ QFrame#Footer {{
     background-color: {_C["HEADER"]};
     border-top: 1px solid {_EDGE};
 }}
-QFrame#Panel, QFrame#Card {{
-    background-color: {_C["PANEL"]};
-    border: 1px solid {_EDGE};
-    border-radius: 8px;
-}}
-QFrame#Tile {{
+QFrame#Panel, QFrame#Card, QFrame#Tile {{
     background-color: {_C["PANEL"]};
     border: 1px solid {_EDGE};
     border-radius: 8px;
@@ -149,7 +149,6 @@ QLabel#Caption {{
 }}
 QLabel#Muted {{ color: {_C["TEXT_DIM"]}; }}
 QLabel#Faint {{ color: {_C["TEXT_FAINT"]}; font-size: 11.5px; }}
-/* 32px and tucked in tight, the way the reference sets a headline metric. */
 QLabel#KpiValue {{
     font-family: {_DISPLAY};
     font-size: 32px;
@@ -158,11 +157,11 @@ QLabel#KpiValue {{
 }}
 QLabel#KpiUnit {{ font-size: 12px; color: {_C["TEXT_DIM"]}; }}
 
-/* Bright enough to read as pressable: dim text on a transparent ground is
-   indistinguishable from a disabled control. */
+/* A white button on a white panel needs its edge to do the work, so the
+   border is a full step darker than the panel border around it. */
 QPushButton {{
-    background-color: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.18);
+    background-color: {_C["PANEL"]};
+    border: 1px solid #c4cdd9;
     border-radius: 5px;
     padding: 9px 15px;
     font-family: {_DISPLAY};
@@ -170,32 +169,34 @@ QPushButton {{
     color: {_C["TEXT"]};
 }}
 QPushButton:hover {{
-    background-color: rgba(255, 255, 255, 0.09);
-    border-color: {_C["ACCENT"]};
+    background-color: {_HOVER};
+    border-color: {_C["ACCENT_DIM"]};
     color: {_C["TEXT"]};
 }}
-QPushButton:pressed {{ background-color: rgba(255, 255, 255, 0.03); }}
+QPushButton:pressed {{ background-color: {_TINT}; }}
 QPushButton:disabled {{ color: {_C["TEXT_FAINT"]}; border-color: {_EDGE_SOFT}; }}
 QPushButton#Primary {{
     background-color: {_C["ACCENT"]};
     border: 1px solid {_C["ACCENT"]};
-    color: {_C["APP"]};
+    color: #ffffff;
     font-weight: 600;
 }}
 QPushButton#Primary:hover {{
     background-color: {_C["ACCENT_SOFT"]};
     border-color: {_C["ACCENT_SOFT"]};
-    color: {_C["APP"]};
+    color: #ffffff;
 }}
-QPushButton#Primary:disabled {{ background-color: {_C["ACCENT_DIM"]}; color: #9ec9c3; }}
+QPushButton#Primary:disabled {{
+    background-color: #c4cdd9;
+    border-color: #c4cdd9;
+    color: #ffffff;
+}}
 QPushButton#Warning {{
     background-color: {_C["WARN"]};
     border: 1px solid {_C["WARN"]};
-    color: #2a1a00;
+    color: #ffffff;
     font-weight: 600;
 }}
-/* Selected pages tint rather than fill: against a near-black ground a solid
-   block of accent is louder than the content it is pointing at. */
 QPushButton#Nav {{
     background-color: transparent;
     border: none;
@@ -208,36 +209,40 @@ QPushButton#Nav {{
     color: {_C["TEXT_DIM"]};
 }}
 QPushButton#Nav:hover {{
-    background-color: rgba(255, 255, 255, 0.05);
+    background-color: {_HOVER};
     color: {_C["TEXT"]};
 }}
 QPushButton#Nav:checked {{
     background-color: {_TINT};
-    color: {_C["ACCENT_SOFT"]};
+    color: {_C["TEXT"]};
     font-weight: 600;
 }}
 
 QLineEdit, QTextEdit, QPlainTextEdit {{
     background-color: {_C["PANEL"]};
-    border: 1px solid rgba(255, 255, 255, 0.10);
+    border: 1px solid #c4cdd9;
     border-radius: 5px;
     padding: 8px 10px;
-    selection-background-color: {_C["ACCENT_DIM"]};
+    color: {_C["TEXT"]};
+    selection-background-color: {_C["ACCENT_SOFT"]};
+    selection-color: #ffffff;
 }}
 QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {{
-    border: 1px solid rgba(20, 184, 166, 0.5);
+    border: 1px solid {_C["ACCENT"]};
 }}
 QComboBox {{
     background-color: {_C["PANEL"]};
-    border: 1px solid rgba(255, 255, 255, 0.10);
+    border: 1px solid #c4cdd9;
     border-radius: 5px;
     padding: 7px 10px;
+    color: {_C["TEXT"]};
 }}
-QComboBox:focus {{ border: 1px solid rgba(20, 184, 166, 0.5); }}
+QComboBox:focus {{ border: 1px solid {_C["ACCENT"]}; }}
 QComboBox QAbstractItemView {{
     background-color: {_C["PANEL"]};
     border: 1px solid {_EDGE};
-    selection-background-color: {_C["ACCENT_DIM"]};
+    selection-background-color: {_TINT};
+    selection-color: {_C["TEXT"]};
 }}
 QCheckBox {{ spacing: 8px; background: transparent; }}
 /* The indicator has to be drawn here. A style sheet rule anywhere on QCheckBox
@@ -246,9 +251,9 @@ QCheckBox {{ spacing: 8px; background: transparent; }}
 QCheckBox::indicator {{
     width: 15px;
     height: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.22);
+    border: 1px solid #b3bece;
     border-radius: 3px;
-    background-color: {_C["PANEL"]};
+    background-color: #ffffff;
 }}
 QCheckBox::indicator:hover {{ border-color: {_C["ACCENT"]}; }}
 QCheckBox::indicator:checked {{
@@ -267,10 +272,11 @@ QTableWidget {{
     gridline-color: {_EDGE_SOFT};
     border: 1px solid {_EDGE};
     border-radius: 8px;
-    selection-background-color: rgba(20, 184, 166, 0.16);
+    selection-background-color: {_TINT};
+    selection-color: {_C["TEXT"]};
 }}
 QHeaderView::section {{
-    background-color: {_C["PANEL"]};
+    background-color: {_C["PANEL_ALT"]};
     color: {_C["TEXT_DIM"]};
     padding: 9px 8px;
     border: none;
@@ -291,12 +297,12 @@ QTabBar::tab {{
     font-weight: 600;
 }}
 QTabBar::tab:selected {{
-    color: {_C["ACCENT_SOFT"]};
+    color: {_C["TEXT"]};
     border-bottom: 2px solid {_C["ACCENT"]};
 }}
 
 QProgressBar {{
-    background-color: {_C["PANEL"]};
+    background-color: {_C["PANEL_ALT"]};
     border: 1px solid {_EDGE};
     border-radius: 4px;
     height: 6px;
@@ -304,9 +310,6 @@ QProgressBar {{
 }}
 QProgressBar::chunk {{ background-color: {_C["ACCENT"]}; border-radius: 3px; }}
 
-/* Flat and slim, with no stepper arrows - the reference has no furniture on
-   its scroll bars. Kept at 10px rather than the reference's 4px, because 4px
-   is a mouse target nobody hits on a workstation. */
 QScrollBar:vertical {{
     background: transparent;
     width: 10px;
@@ -343,18 +346,18 @@ QScrollBar::add-page, QScrollBar::sub-page {{ background: transparent; }}
 
 QStatusBar {{ background-color: {_C["HEADER"]}; color: {_C["TEXT_DIM"]}; }}
 QMenuBar {{ background-color: {_C["HEADER"]}; color: {_C["TEXT_DIM"]}; }}
-QMenuBar::item:selected {{ background: {_TINT}; color: {_C["ACCENT_SOFT"]}; }}
+QMenuBar::item:selected {{ background: {_TINT}; color: {_C["TEXT"]}; }}
 QMenu {{
     background-color: {_C["PANEL"]};
     border: 1px solid {_EDGE};
     padding: 4px;
 }}
 QMenu::item {{ padding: 6px 22px; border-radius: 4px; }}
-QMenu::item:selected {{ background: {_TINT}; color: {_C["ACCENT_SOFT"]}; }}
+QMenu::item:selected {{ background: {_TINT}; color: {_C["TEXT"]}; }}
 QToolTip {{
-    background-color: {_C["PANEL"]};
-    color: {_C["TEXT"]};
-    border: 1px solid {_EDGE};
+    background-color: {_C["TEXT"]};
+    color: #ffffff;
+    border: 1px solid {_C["TEXT"]};
     padding: 6px;
 }}
 """
@@ -364,8 +367,11 @@ def prepare() -> None:
     """Repoint the shared colours. Call this *before* building a window.
 
     Half of a re-skin cannot be delivered by a style sheet: badges, KPI values,
-    chart series and the brand mark read the palette in their constructors, so
-    the palette has to be in place before any of them is built.
+    chart series, the rail's safety card and the navigation icons read the
+    palette in their constructors, so the palette has to be in place before any
+    of them is built. On a light ground this matters more than on a dark one -
+    a widget that keeps a dark skin's colour here is not merely off-key, it is
+    unreadable.
     """
     from .theme import apply_palette
 
@@ -378,11 +384,6 @@ def dress(window: "QMainWindow") -> None:
     The mark, the avatar and the search box are hidden rather than removed from
     :class:`ui2.components.HeaderBar`, so the header itself stays one widget
     with one behaviour and only its appearance differs by entry point.
-
-    The search box is the only one of the three that did anything - it filtered
-    the reports table - so a dressed window trades that filter for a quieter
-    header. Every report is still reachable; they just cannot be narrowed from
-    up there.
     """
     window.setStyleSheet(STYLESHEET)
     header = getattr(window, "header", None)

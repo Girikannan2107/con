@@ -643,23 +643,39 @@ class TestWorkflowAndInterface(unittest.TestCase):
                          Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.assertEqual(area.widget().minimumHeight(), 640)
 
-    def test_both_entry_points_wear_the_same_skin(self) -> None:
-        """Both builds are the deep-navy design, applied the same way.
+    def test_each_entry_point_wears_its_own_skin_the_same_way(self) -> None:
+        """Two designs, one mechanism.
 
-        The skin is two steps that have to happen either side of construction,
-        so both entry points call gov_theme.prepare() and gov_theme.dress()
+        app.py is the white-and-grey build and app2.py the deep navy, but a
+        skin is two steps that have to happen either side of construction, so
+        both entry points call prepare() and dress() on their own theme module
         rather than each spelling the sequence out - one of them would drift.
         """
         import app
         import app2
 
-        for module in (app, app2):
+        for module, theme in ((app, "light_theme"), (app2, "gov_theme")):
             self.assertTrue(hasattr(module, "main"))
             self.assertTrue(hasattr(module, "build_window"))
             with open(module.__file__, encoding="utf-8") as handle:
                 source = handle.read()
-            self.assertIn("gov_theme.prepare()", source)
-            self.assertIn("gov_theme.dress(window)", source)
+            self.assertIn(f"{theme}.prepare()", source)
+            self.assertIn(f"{theme}.dress(window)", source)
+
+    def test_the_two_skins_cover_the_same_colours(self) -> None:
+        """Neither palette may leave a colour on the other design's value.
+
+        A partial palette is the failure mode that matters here: one name left
+        behind means one widget still painted for a near-black ground, which on
+        white is not off-key but unreadable.
+        """
+        from ui import gov_theme, light_theme
+
+        self.assertEqual(set(gov_theme.PALETTE), set(light_theme.PALETTE))
+        from ui.theme import C
+
+        for name in light_theme.PALETTE:
+            self.assertTrue(hasattr(C, name), f"{name} is not a shared colour")
 
 
 def _result(reference: str, text: str, **fields) -> PipelineResult:

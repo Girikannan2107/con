@@ -136,7 +136,7 @@ class Sidebar(QFrame):
     def _footer() -> QWidget:
         card = QFrame()
         card.setStyleSheet(
-            f"background-color: rgba(34, 197, 94, 0.10); border: 1px solid {C.OK};"
+            f"background-color: {C.OK_WASH}; border: 1px solid {C.OK};"
             "border-radius: 10px;")
         layout = QVBoxLayout(card)
         layout.setContentsMargins(14, 10, 14, 10)
