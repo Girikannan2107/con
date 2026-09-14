@@ -1043,8 +1043,8 @@ class TestTranslationWithoutAManualProbe(unittest.TestCase):
 
 
 @unittest.skipUnless(HAS_PYQT, "PyQt6 is not installed")
-class TestLightBuild(unittest.TestCase):
-    """app.py: the same console as app2.py, wearing the white-and-grey skin.
+class TestGreenRailBuild(unittest.TestCase):
+    """app.py: the same console as app2.py, wearing the green-rail skin.
 
     The point of the re-skin being an entry-point concern rather than a second
     controller is that neither build can quietly lose a capability the other
@@ -1089,23 +1089,62 @@ class TestLightBuild(unittest.TestCase):
 
     def test_the_skin_actually_changes_the_palette(self) -> None:
         import app
-        from ui import light_theme
+        from ui import green_theme
         from ui.theme import C
 
         before = C.ACCENT
         window = app.build_window()
         self.addCleanup(window.close)
 
-        self.assertEqual(C.ACCENT, light_theme.PALETTE["ACCENT"])
-        self.assertNotEqual(C.ACCENT, before, "the light skin must not be the first")
-        self.assertIn(light_theme.PALETTE["APP"], window.styleSheet())
+        self.assertEqual(C.ACCENT, green_theme.PALETTE["ACCENT"])
+        self.assertNotEqual(C.ACCENT, before, "the green skin must not be the first")
+        self.assertIn(green_theme.PALETTE["APP"], window.styleSheet())
 
-    def test_the_light_build_is_actually_light(self) -> None:
-        """The ground is pale and the text is dark, measured off the window.
+    def test_the_page_is_light_and_the_rail_is_green(self) -> None:
+        """Measured off the rendered window, not read off the style sheet.
 
-        A skin that only half-applies leaves dark widgets on a white page, so
-        this reads the rendered pixels rather than the style sheet: the top-left
-        of the shell has to be a light colour, not a navy one.
+        This is the design in one assertion: one green column on the left, and
+        a light page everywhere to the right of it. A skin that only half
+        applies fails here rather than in front of an audience.
+        """
+        from PyQt6.QtGui import QColor
+
+        import app
+        from ui import green_theme
+
+        window = app.build_window()
+        self.addCleanup(window.close)
+        window.resize(1400, 900)
+        window.show()
+        self.app.processEvents()
+
+        image = window.grab().toImage()
+        for x, y in ((400, 500), (1100, 700), (700, 300)):
+            # An average over a patch, not one pixel: a single sample can land
+            # on a glyph and call a white page dark.
+            samples = [QColor(image.pixel(x + dx, y + dy)).lightness()
+                       for dx in range(0, 40, 4) for dy in range(0, 40, 4)]
+            self.assertGreater(sum(samples) / len(samples), 170,
+                               f"the page around ({x}, {y}) is dark")
+
+        # From below the menu bar and the header band down to the foot of the
+        # window: every one of these is inside the rail.
+        rail = QColor(green_theme.PALETTE["SIDEBAR"])
+        for y in (90, 240, 460, 680, 840):
+            colour = QColor(image.pixel(6, y))
+            self.assertLess(abs(colour.hue() - rail.hue()), 12,
+                            f"the rail at y={y} is not the green it should be")
+            self.assertGreater(colour.saturation(), 120,
+                               f"the rail at y={y} has lost its colour")
+
+    def test_nothing_inside_the_rail_paints_the_page_over_it(self) -> None:
+        """The failure this design invites, held by a test.
+
+        The nav list is a plain widget in a scroll area in the rail, and a plain
+        widget paints the application background - the page's grey - straight
+        over the green. It is cleared in the style sheet by name, which is easy
+        to lose and impossible to miss on screen, so it is measured here: a
+        column of pixels down the rail, all of them green.
         """
         from PyQt6.QtGui import QColor
 
@@ -1118,18 +1157,21 @@ class TestLightBuild(unittest.TestCase):
         self.app.processEvents()
 
         image = window.grab().toImage()
-        for x, y in ((6, 6), (400, 500), (1100, 700)):
-            colour = QColor(image.pixel(min(x, image.width() - 1),
-                                        min(y, image.height() - 1)))
-            self.assertGreater(colour.lightness(), 170,
-                               f"({x}, {y}) is dark in the light build")
+        grey = []
+        for y in range(90, 780, 10):
+            colour = QColor(image.pixel(200, y))   # inside the rail, right of the icons
+            if colour.saturation() < 60:
+                grey.append((y, colour.name()))
+        # The white pill on the selected item and the safety card are meant to
+        # be there; a grey block is not, and would run for dozens of rows.
+        self.assertLess(len(grey), 14, f"the page is painting over the rail: {grey[:6]}")
 
-    def test_the_palette_is_the_supplied_design_token_for_token(self) -> None:
-        """The skin is a transcription of a design, so it is checked against it.
+    def test_the_white_and_grey_skin_is_still_its_design_token_for_token(self) -> None:
+        """The other light skin, kept and still pinned to its reference.
 
-        These are the tokens from the reference's own stylesheet. A drift in any
-        one of them is a build that no longer matches the design it was drawn
-        from, which is the kind of thing nobody notices until a demo.
+        ``ui.light_theme`` is the white-grey-and-blue transcription; app.py wears
+        the green rail now, but the module is a complete skin and a one-line
+        change away, so its tokens are still held to the design they came from.
         """
         from ui import light_theme
 
@@ -1198,13 +1240,13 @@ class TestLightBuild(unittest.TestCase):
         from PyQt6.QtGui import QColor
 
         import app
-        from ui import light_theme
+        from ui import green_theme
         from ui.theme import C
 
         window = app.build_window()
         self.addCleanup(window.close)
 
-        self.assertEqual(C.ICON_ON, light_theme.PALETTE["ICON_ON"])
+        self.assertEqual(C.ICON_ON, green_theme.PALETTE["ICON_ON"])
         self.assertLess(QColor(C.ICON_ON).lightness(), 128,
                         "a pale icon on a pale selection is invisible")
 
@@ -1255,9 +1297,9 @@ class TestLightBuild(unittest.TestCase):
         """
         import app
         import app2
-        from ui import gov_theme, light_theme
+        from ui import gov_theme, green_theme
 
-        for module, theme in ((app, light_theme), (app2, gov_theme)):
+        for module, theme in ((app, green_theme), (app2, gov_theme)):
             window = module.build_window()
             self.addCleanup(window.close)
             window.show()
@@ -1267,7 +1309,7 @@ class TestLightBuild(unittest.TestCase):
             for name in ("mark", "avatar", "search"):
                 self.assertTrue(getattr(window.header, name).isHidden(),
                                 f"{name} should be hidden in both builds")
-        self.assertNotEqual(light_theme.STYLESHEET, gov_theme.STYLESHEET)
+        self.assertNotEqual(green_theme.STYLESHEET, gov_theme.STYLESHEET)
 
     def test_the_two_builds_are_told_apart_in_the_title_bar(self) -> None:
         import app

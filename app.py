@@ -1,15 +1,16 @@
-"""SENTRA - white and grey build. Oil India Limited, Problem Statement 26165.
+"""SENTRA - green-rail build. Oil India Limited, Problem Statement 26165.
 
 Run with::
 
     python app.py
 
-The same console as ``app2.py``, in the supplied white-and-grey design: white
-cards on a light grey ground, blue as the interactive colour, hairline grey
-borders, a navigation item that fills with a pale blue pill and column headings
-set in small capitals. It is the build for a lit room - a desk beside a window,
-or a projector in a hall - where the near-black design of ``app2.py`` washes
-out. Every capability is the one implementation - the
+The same console as ``app2.py``, in the green-rail design: a lime navigation
+column down the left - the brand block above it filled to match, so the two are
+one column - and white cards on a light grey ground to the right of it, with
+the same lime returning only where something is meant to be pressed. It is the
+build for a lit room - a desk beside a window, or a projector in a hall - where
+the near-black design of ``app2.py`` washes out. Every capability is the one
+implementation - the
 workflow map, multilingual OCR, translation, the dashboard, hotspots, the human
 review bench, analytics, training and the audit trail - so a fix to any of them
 lands in both builds at once and neither can drift into being a stale copy of
@@ -24,9 +25,11 @@ widget that paints itself:
 1. :func:`ui.theme.apply_palette` repoints the shared colours *before* the
    window is built, which catches the badges, KPI values, chart series and the
    brand mark.
-2. :data:`ui.light_theme.STYLESHEET` is set on the window afterwards, and
-   carries the structure - 10px cards, the pale blue selection, the flat scroll
-   bars, the page heading on its own white band.
+2. :data:`ui.green_theme.STYLESHEET` is set on the window afterwards, and
+   carries the structure - 10px cards, the white pill on the rail, the flat
+   scroll bars, the page heading on its own white band, and the rule that
+   clears the plain widgets inside the rail so none of them lays a block of the
+   page's grey over the green.
 
 On a light ground the first half is what keeps the console readable rather than
 merely consistent: a badge, a chart series or a nav icon left on a dark skin's
@@ -49,8 +52,9 @@ Module map
     ``audit`` the append-only trail.
 ``ui/``
     Shared presentation: ``theme`` (the console's own look and the shared
-    colour table), ``light_theme`` (this one), ``gov_theme`` (the deep navy of
-    ``app2.py``), ``charts``, ``components``.
+    colour table), ``green_theme`` (this one), ``light_theme`` (white, grey and
+    blue), ``gov_theme`` (the deep navy of ``app2.py``), ``charts``,
+    ``components``.
 ``ui2/``
     The pages: navigation, workflow map, review bench, dashboards, settings.
 ``main2.py``
@@ -73,7 +77,7 @@ import sys
 
 #: Shown in the title bar, so an operator running both builds side by side can
 #: tell which window is which.
-WINDOW_TITLE = "SENTRA - white and grey"
+WINDOW_TITLE = "SENTRA - green rail"
 
 
 def _require_pyqt6() -> None:
@@ -90,20 +94,20 @@ def _require_pyqt6() -> None:
 
 
 def build_window():
-    """Construct the console wearing the white-and-grey skin.
+    """Construct the console wearing the green-rail skin.
 
     The palette is applied first and the window built second: that order is the
     whole mechanism, because every widget that styles itself reads the palette
     in its constructor.
     """
-    from ui import light_theme
+    from ui import green_theme
 
-    light_theme.prepare()
+    green_theme.prepare()
 
     from main2 import MainWindow
 
     window = MainWindow()
-    light_theme.dress(window)
+    green_theme.dress(window)
     window.setWindowTitle(WINDOW_TITLE)
     return window
 

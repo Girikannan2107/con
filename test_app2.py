@@ -646,7 +646,7 @@ class TestWorkflowAndInterface(unittest.TestCase):
     def test_each_entry_point_wears_its_own_skin_the_same_way(self) -> None:
         """Two designs, one mechanism.
 
-        app.py is the white-and-grey build and app2.py the deep navy, but a
+        app.py is the green-rail build and app2.py the deep navy, but a
         skin is two steps that have to happen either side of construction, so
         both entry points call prepare() and dress() on their own theme module
         rather than each spelling the sequence out - one of them would drift.
@@ -654,7 +654,7 @@ class TestWorkflowAndInterface(unittest.TestCase):
         import app
         import app2
 
-        for module, theme in ((app, "light_theme"), (app2, "gov_theme")):
+        for module, theme in ((app, "green_theme"), (app2, "gov_theme")):
             self.assertTrue(hasattr(module, "main"))
             self.assertTrue(hasattr(module, "build_window"))
             with open(module.__file__, encoding="utf-8") as handle:
@@ -662,19 +662,21 @@ class TestWorkflowAndInterface(unittest.TestCase):
             self.assertIn(f"{theme}.prepare()", source)
             self.assertIn(f"{theme}.dress(window)", source)
 
-    def test_the_two_skins_cover_the_same_colours(self) -> None:
-        """Neither palette may leave a colour on the other design's value.
+    def test_every_skin_covers_the_same_colours(self) -> None:
+        """No palette may leave a colour on another design's value.
 
         A partial palette is the failure mode that matters here: one name left
         behind means one widget still painted for a near-black ground, which on
-        white is not off-key but unreadable.
+        white is not off-key but unreadable. The three skins are therefore held
+        to the same set of names, and every name to being a real shared colour.
         """
-        from ui import gov_theme, light_theme
-
-        self.assertEqual(set(gov_theme.PALETTE), set(light_theme.PALETTE))
+        from ui import gov_theme, green_theme, light_theme
         from ui.theme import C
 
-        for name in light_theme.PALETTE:
+        names = set(gov_theme.PALETTE)
+        self.assertEqual(names, set(light_theme.PALETTE))
+        self.assertEqual(names, set(green_theme.PALETTE))
+        for name in names:
             self.assertTrue(hasattr(C, name), f"{name} is not a shared colour")
 
 
