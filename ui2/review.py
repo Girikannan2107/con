@@ -54,12 +54,15 @@ __all__ = ["ReviewView", "QUEUE_COLUMNS", "TRAIL_COLUMNS", "DECISION_BUTTONS"]
 # Widths are sized for the queue panel rather than for the text: the full reason
 # is on every row as a tooltip and in the bench beside it, so the column carries
 # as much as fits and no more.
+#: The queue sits in the bench's left pane, which is the narrowest column in
+#: the console - so these are sized to the widest value each column actually
+#: holds rather than to its heading, and the reason column takes what is left.
 QUEUE_COLUMNS: Sequence[Tuple[str, str, int]] = (
-    ("Trigger", "trigger", 142),
-    ("Ref", "reference", 76),
-    ("Risk", "risk_score", 60),
-    ("Engine", "sif_potential", 64),
-    ("Status", "status", 92),
+    ("Trigger", "trigger", 124),
+    ("Ref", "reference", 70),
+    ("Risk", "risk_score", 56),
+    ("Engine", "sif_potential", 60),
+    ("Status", "status", 82),
     ("Why a human is needed", "reason", 174),
 )
 

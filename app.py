@@ -1,16 +1,14 @@
-"""SENTRA - green-rail build. Oil India Limited, Problem Statement 26165.
+"""SENTRA - black-and-lime build. Oil India Limited, Problem Statement 26165.
 
 Run with::
 
     python app.py
 
-The same console as ``app2.py``, in the green-rail design: a lime navigation
-column down the left - the brand block above it filled to match, so the two are
-one column - and white cards on a light grey ground to the right of it, with
-the same lime returning only where something is meant to be pressed. It is the
-build for a lit room - a desk beside a window, or a projector in a hall - where
-the near-black design of ``app2.py`` washes out. Every capability is the one
-implementation - the
+The same console as ``app2.py``, in the supplied design: black cards and a
+black navigation rail on a warm charcoal ground, everything in capitals with
+the rail numbered 01, 02, 03, and one vivid lime carrying the wordmark, every
+control and the page you are on. Every capability is the one implementation -
+the
 workflow map, multilingual OCR, translation, the dashboard, hotspots, the human
 review bench, analytics, training and the audit trail - so a fix to any of them
 lands in both builds at once and neither can drift into being a stale copy of
@@ -26,10 +24,9 @@ widget that paints itself:
    window is built, which catches the badges, KPI values, chart series and the
    brand mark.
 2. :data:`ui.green_theme.STYLESHEET` is set on the window afterwards, and
-   carries the structure - 10px cards, the white pill on the rail, the flat
-   scroll bars, the page heading on its own white band, and the rule that
-   clears the plain widgets inside the rail so none of them lays a block of the
-   page's grey over the green.
+   carries the structure - square black cards, pill-shaped buttons, the page
+   heading on its own raised band, and the rule that clears the plain widgets
+   inside the rail so none of them lays a block of the charcoal over the black.
 
 On a light ground the first half is what keeps the console readable rather than
 merely consistent: a badge, a chart series or a nav icon left on a dark skin's
@@ -51,10 +48,10 @@ Module map
     the generated briefs and bulletins, ``mlops`` the XGBoost model and
     ``audit`` the append-only trail.
 ``ui/``
-    Shared presentation: ``theme`` (the console's own look and the shared
-    colour table), ``green_theme`` (this one), ``light_theme`` (white, grey and
-    blue), ``gov_theme`` (the deep navy of ``app2.py``), ``charts``,
-    ``components``.
+    Shared presentation: ``theme`` (the console's own look, the shared colour
+    table and the typographic switches), ``green_theme`` (this one),
+    ``light_theme`` (white, grey and blue), ``gov_theme`` (the deep navy of
+    ``app2.py``), ``charts``, ``components``.
 ``ui2/``
     The pages: navigation, workflow map, review bench, dashboards, settings.
 ``main2.py``
@@ -77,7 +74,7 @@ import sys
 
 #: Shown in the title bar, so an operator running both builds side by side can
 #: tell which window is which.
-WINDOW_TITLE = "SENTRA - green rail"
+WINDOW_TITLE = "SENTRA - black and lime"
 
 
 def _require_pyqt6() -> None:
@@ -94,7 +91,7 @@ def _require_pyqt6() -> None:
 
 
 def build_window():
-    """Construct the console wearing the green-rail skin.
+    """Construct the console wearing the black-and-lime skin.
 
     The palette is applied first and the window built second: that order is the
     whole mechanism, because every widget that styles itself reads the palette

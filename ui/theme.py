@@ -11,8 +11,8 @@ from __future__ import annotations
 import os
 from typing import Mapping
 
-__all__ = ["C", "STYLESHEET", "BAND_COLORS", "SEVERITY_COLORS", "CATEGORICAL", "ASSETS",
-           "PAGE_MARGIN", "apply_palette"]
+__all__ = ["C", "LOOK", "STYLESHEET", "BAND_COLORS", "SEVERITY_COLORS", "CATEGORICAL",
+           "ASSETS", "PAGE_MARGIN", "apply_palette", "apply_look"]
 
 #: Directory holding the small PNG arrows used by the scroll controls. Qt style
 #: sheets cannot draw a triangle reliably across styles, so the stepper arrows
@@ -80,6 +80,35 @@ class C:
     WARN = "#f59e0b"
     OK = "#22c55e"
     INFO = "#38bdf8"
+
+
+class LOOK:
+    """Typographic switches a skin sets before its window is built.
+
+    A Qt style sheet cannot change letter case and cannot insert text, so the
+    few places where a design asks for capitals - or for a rail numbered down
+    the side - can only be settled in the code that builds the widget. They are
+    collected here rather than left as flags scattered across the widgets, and
+    every theme module sets all of them in its ``prepare()``: a switch only one
+    theme sets is a switch that leaks into the next window built in the same
+    process.
+    """
+
+    #: Column headings in capitals.
+    TABLE_HEADERS_UPPER = False
+    #: Navigation labels in capitals.
+    NAV_UPPER = False
+    #: Navigation items numbered 01, 02, 03 - and drawn without their icons,
+    #: because a design that numbers its rail does not also picture it.
+    NAV_NUMBERED = False
+
+
+def apply_look(*, table_headers_upper: bool = False, nav_upper: bool = False,
+               nav_numbered: bool = False) -> None:
+    """Set every typographic switch at once, so none can be left behind."""
+    LOOK.TABLE_HEADERS_UPPER = table_headers_upper
+    LOOK.NAV_UPPER = nav_upper
+    LOOK.NAV_NUMBERED = nav_numbered
 
 
 #: Risk band -> colour, used by every table and chart.

@@ -646,7 +646,7 @@ class TestWorkflowAndInterface(unittest.TestCase):
     def test_each_entry_point_wears_its_own_skin_the_same_way(self) -> None:
         """Two designs, one mechanism.
 
-        app.py is the green-rail build and app2.py the deep navy, but a
+        app.py is the black-and-lime build and app2.py the deep navy, but a
         skin is two steps that have to happen either side of construction, so
         both entry points call prepare() and dress() on their own theme module
         rather than each spelling the sequence out - one of them would drift.

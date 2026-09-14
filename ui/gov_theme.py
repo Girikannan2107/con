@@ -369,14 +369,13 @@ def prepare() -> None:
     chart series and the brand mark read the palette in their constructors, so
     the palette has to be in place before any of them is built.
     """
-    from .components import DataTable
-    from .theme import apply_palette
+    from .theme import apply_look, apply_palette
 
     apply_palette(PALETTE)
-    # This design sets its column headings in sentence case; the white-and-grey
-    # one sets them in capitals. Both say so here, so whichever is prepared last
-    # is the one the tables follow.
-    DataTable.UPPERCASE_HEADERS = False
+    # This design sets its headings in sentence case and its rail in words
+    # rather than numbers. Every theme states all three, so whichever was
+    # prepared last is the one the widgets follow.
+    apply_look()
 
 
 def dress(window: "QMainWindow") -> None:

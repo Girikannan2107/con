@@ -1,34 +1,37 @@
-"""The green-rail skin: a lime navigation column beside a white page.
+"""The black-and-lime skin, transcribed from the supplied reference.
 
 :mod:`ui.theme` is mid navy, :mod:`ui.gov_theme` near-black navy with teal, and
-:mod:`ui.light_theme` white cards on grey with a blue accent. This one keeps a
-light page and moves the colour to one side: the navigation rail - and the
-brand block directly above it, so the two read as a single column - is filled
-lime, and everything to the right of it is white panels on a grey ground.
+:mod:`ui.light_theme` white cards on grey. This one is the reference's own
+look: black surfaces on a warm charcoal ground, everything set in capitals, and
+a single vivid lime carrying every interactive thing on the page.
 
-Why the colour sits where it does. A rail is a fixed, narrow strip that an
-operator navigates by rather than reads, which makes it the one place a
-saturated colour costs nothing: it is never behind a narrative, a table of
-evidence or a risk score. The page keeps the white and grey the content needs,
-and the same lime returns on the right only where something is meant to be
-pressed.
+How the reference is built, and how that maps onto a console:
 
-Two things a light-on-colour rail forces, both of which are the reason this is
-a module and not three edited lines:
+``black``
+    The header, the navigation rail and every card are pure black. Black is the
+    *content* colour here, not the background - the cards sit on the charcoal
+    rather than being cut out of it.
+``charcoal #3b3733``
+    The ground between the cards, warm rather than neutral - a grey mixed
+    towards brown, which is what keeps the black from reading as a hole.
+``lime #8cef1e``
+    One colour, used for exactly three things: the wordmark, anything that can
+    be pressed, and the item you are on. Nothing decorative is lime, which is
+    why it still reads as "press this" after a page of it.
+``capitals``
+    The rail is numbered 01, 02, 03 and set in capitals, as are the column
+    headings. Qt style sheets can do neither, so both come from
+    :func:`ui.theme.apply_look`, called in :func:`prepare` below.
 
-* **Nothing inside the rail may paint the page's grey.** The nav list sits in a
-  scroll area whose viewport, whose inner widget and whose per-row containers
-  are all plain ``QWidget``s, and a plain widget takes the application
-  background - which on this design would be a grey block laid over the green.
-  They are made transparent here, by name.
-* **The accent has two strengths.** Lime bright enough to fill a rail is
-  unreadable as text on white, so the fill is ``#84cc16`` with near-black on
-  it, and anything written in the accent - a link, a KPI value, a selected tab
-  - uses ``#4d7c0f``, which carries the same hue at 5:1 against white.
+Two shapes matter as much as the colours. Buttons are pills - fully rounded,
+lime with black text where something is the main action, and a hairline outline
+with white text where it is not. Cards are square-cornered black rectangles,
+not rounded ones; rounding them softens a design whose whole character is that
+it does not soften.
 
-Fonts are named in the reference as Instrument Sans, Inter and DM Mono. Those
-are web fonts and will not be installed on a plant workstation, so each is
-given the platform's own stack behind it.
+The one thing deliberately not transcribed is the pictographic navigation. The
+reference numbers its list instead of picturing it, so a numbered rail drops
+the drawn icons rather than showing both.
 """
 
 from __future__ import annotations
@@ -43,143 +46,148 @@ if TYPE_CHECKING:  # pragma: no cover - typing only
 __all__ = ["PALETTE", "STYLESHEET", "NAME", "prepare", "dress"]
 
 #: What to call this look where an operator can see it.
-NAME = "Green rail / white page"
+NAME = "Black / lime"
 
-#: Design tokens. Names match :class:`ui.theme.C` so the mapping can be applied
-#: without translation.
+#: Design tokens, sampled from the reference. Names match :class:`ui.theme.C`
+#: so the mapping can be applied without translation.
 PALETTE = {
-    # Surfaces. Grey ground, white content - and one green column on the left.
-    "APP": "#f1f4f2",
-    "SIDEBAR": "#a3e635",
-    "HEADER": "#ffffff",
-    "PANEL": "#ffffff",
-    "PANEL_ALT": "#f6f8f6",
-    "CARD": "#ffffff",
-    "BORDER": "#e1e6e2",
-    "BORDER_SOFT": "#eef1ef",
+    # Surfaces. The ground is the warm charcoal; the content is black.
+    "APP": "#3b3733",
+    "SIDEBAR": "#000000",
+    "HEADER": "#000000",
+    "PANEL": "#000000",
+    "PANEL_ALT": "#121110",
+    "CARD": "#000000",
+    "BORDER": "#4e4941",
+    "BORDER_SOFT": "#2a2724",
 
-    # Text. Near-black rather than black: full black on white vibrates.
-    "TEXT": "#101711",
-    "TEXT_DIM": "#586158",
-    "TEXT_FAINT": "#8b948c",
+    "TEXT": "#ffffff",
+    "TEXT_DIM": "#c2bcb3",
+    "TEXT_FAINT": "#928c84",
 
-    "BRAND": "#c62828",
-    # The written accent, not the fill: lime bright enough for a rail cannot be
-    # read as text on white, so anything set in the accent uses this instead.
-    "ACCENT": "#4d7c0f",
-    "ACCENT_SOFT": "#65a30d",
-    "ACCENT_DIM": "#3f6212",
-    "BLUE": "#1d4ed8",
-    "PURPLE": "#7c3aed",
-    # The selected nav item is a white pill on the green rail, so its icon is
-    # the deepest green. White would be an empty pill.
-    "ICON_ON": "#365314",
+    "BRAND": "#e63329",
+    # The lime. One colour for the wordmark, for anything pressable, and for
+    # the page you are on - and for nothing else.
+    "ACCENT": "#8cef1e",
+    "ACCENT_SOFT": "#a6f752",
+    "ACCENT_DIM": "#6cc40f",
+    "BLUE": "#4f63f5",
+    "PURPLE": "#a78bfa",
+    # The selected rail item is lime text on a lighter charcoal row, so its
+    # icon - where a skin draws icons at all - is lime too.
+    "ICON_ON": "#8cef1e",
 
-    "SCROLL_TRACK": "#f1f4f2",
-    "SCROLL_THUMB": "#c6cec8",
-    "SCROLL_THUMB_HOVER": "#98a39b",
+    "SCROLL_TRACK": "#000000",
+    "SCROLL_THUMB": "#4e4941",
+    "SCROLL_THUMB_HOVER": "#6b655b",
 
-    # Status. A true green for OK, distinct from the lime accent, so "this is
-    # ready" cannot be mistaken for "this is a control".
-    "DANGER": "#c62828",
-    "WARN": "#b45309",
-    "OK": "#15803d",
-    # Blue, but a calmer one than the page's links: beside a lime accent the
-    # electric blue of the other skins shouts.
-    "INFO": "#0369a1",
+    # Status. Green means ready, and in this design green is the lime - there
+    # is no second green that would not look like a mistake beside it.
+    "DANGER": "#ff5c52",
+    "WARN": "#ffb02e",
+    "OK": "#8cef1e",
+    # The reference's own badge blue, kept for the one thing it marks: a note
+    # about the machine rather than about the work.
+    "INFO": "#4f63f5",
 
-    # The rail's safety card sits on the green, so it is a white card with the
-    # deepest green on it rather than a tinted wash.
-    # Opaque, not a wash: at anything less the labels inside the card - which
-    # paint their own white - read as brighter strips across it.
-    "RAIL_WASH": "#ffffff",
-    "RAIL_LINE": "#ffffff",
-    "RAIL_ACCENT": "#2a4d0c",
+    # The rail's safety card: black on black would vanish, so it is the charcoal
+    # with a lime rule and a lime heading.
+    "RAIL_WASH": "#1a1815",
+    "RAIL_LINE": "#8cef1e",
+    "RAIL_ACCENT": "#8cef1e",
 }
 
 _C = PALETTE
-#: Hairlines. On this ground a border is darker than what it encloses.
-_EDGE = "#e1e6e2"
-_EDGE_SOFT = "#eef1ef"
-#: A control's own edge, one step darker again, so a white button on a white
-#: panel is still a button.
-_EDGE_CONTROL = "#cfd6d1"
-#: The rail's fill, and the same lime as a button fill on the right-hand side.
-_LIME = "#a3e635"
-_LIME_FILL = "#84cc16"
-_LIME_DEEP = "#365314"
-#: Near-black, for text and icons that sit on the lime.
-_ON_LIME = "#14250a"
-#: The selected nav item, and the tint the page uses to echo it.
-_TINT = "#ecfccb"
-_HOVER = "#f4fae9"
+_BLACK = "#000000"
+_CHARCOAL = "#3b3733"
+#: The band at the top of a page, and the row under the pointer in the rail -
+#: one step lighter than the ground, as in the reference.
+_RAISED = "#454039"
+#: The selected rail item.
+_SELECTED = "#3a3733"
+_LIME = "#8cef1e"
+_EDGE = "#4e4941"
+_EDGE_SOFT = "#2a2724"
+#: A hairline drawn on black rather than on the charcoal.
+_EDGE_BLACK = "#26231f"
 _FONT = '"Inter", "Segoe UI", "DejaVu Sans", Arial, sans-serif'
 _DISPLAY = '"Instrument Sans", "Inter", "Segoe UI", Arial, sans-serif'
 _MONO = '"DM Mono", "Roboto Mono", "DejaVu Sans Mono", "Consolas", monospace'
 
 STYLESHEET = f"""
 QWidget {{
-    background-color: {_C["APP"]};
+    background-color: {_CHARCOAL};
     color: {_C["TEXT"]};
     font-family: {_FONT};
     font-size: 13px;
 }}
 QLabel {{ background: transparent; border: none; }}
 
-/* ---- the green column ------------------------------------------------ */
-QFrame#Sidebar {{ background-color: {_LIME}; border: none; }}
+/* ---- the black rail -------------------------------------------------- */
+QFrame#Sidebar {{ background-color: {_BLACK}; border: none; }}
 /* Everything inside the rail is a plain widget, and a plain widget paints the
-   application background - which here is the page's grey, laid in a block over
-   the green. The nav list, its scroll area and its per-row containers are
-   therefore cleared by name. The controls below set their own backgrounds and
-   are unaffected: an id selector outranks this one. */
+   application background - which here is the charcoal, laid in a block over
+   the black. The nav list, its scroll area and its row containers are cleared
+   by name; the controls set their own backgrounds and outrank this rule. */
 QFrame#Sidebar QWidget, QFrame#Sidebar QScrollArea {{ background: transparent; }}
 QFrame#Sidebar QScrollArea {{ border: none; }}
-/* The brand block sits directly above the rail and is exactly as wide, so the
-   green runs from the top of the window to the bottom in one column. */
-QWidget#HeaderBrand {{ background-color: {_LIME}; }}
-QWidget#HeaderBrand QLabel {{ color: {_ON_LIME}; }}
-QWidget#HeaderBrand QLabel#BrandName {{ color: {_ON_LIME}; font-weight: 800; }}
 
+/* The wordmark is the one place the lime appears without being pressable. */
+QWidget#HeaderBrand {{ background-color: {_BLACK}; }}
+QWidget#HeaderBrand QLabel#BrandName {{
+    color: {_LIME};
+    font-size: 17px;
+    font-weight: 800;
+    letter-spacing: 0.2px;
+}}
+
+/* Capitals and a number come from apply_look(); the spacing and the lime are
+   here. Square, not rounded: the reference's selected row is a rectangle. */
 QPushButton#Nav {{
     background-color: transparent;
     border: none;
-    border-radius: 7px;
-    padding: 8px 12px;
-    margin: 1px 8px;
+    border-radius: 0px;
+    padding: 11px 14px;
+    margin: 0px;
     text-align: left;
     font-family: {_DISPLAY};
+    font-size: 12px;
     font-weight: 600;
-    color: {_ON_LIME};
+    letter-spacing: 0.4px;
+    color: {_C["TEXT"]};
 }}
-QPushButton#Nav:hover {{ background-color: rgba(255, 255, 255, 0.38); }}
+QPushButton#Nav:hover {{ background-color: #1c1a18; color: {_LIME}; }}
 QPushButton#Nav:checked {{
-    background-color: #ffffff;
-    color: {_LIME_DEEP};
+    background-color: {_SELECTED};
+    color: {_LIME};
     font-weight: 700;
 }}
 
-/* ---- the white page -------------------------------------------------- */
-QSplitter#Shell::handle {{ background-color: {_EDGE}; }}
-QSplitter#Shell::handle:hover {{ background-color: {_LIME_FILL}; }}
+/* ---- the charcoal page ----------------------------------------------- */
+QSplitter#Shell::handle {{ background-color: {_EDGE_BLACK}; }}
+QSplitter#Shell::handle:hover {{ background-color: {_LIME}; }}
 QFrame#Header {{
-    background-color: {_C["HEADER"]};
-    border-bottom: 1px solid {_EDGE};
+    background-color: {_BLACK};
+    /* The reference's indigo strip across the very top of the window. */
+    border-top: 3px solid #3c3cd2;
+    border-bottom: 1px solid {_EDGE_BLACK};
 }}
-/* The page heading on its own white band above the grey page. */
+/* The page heading sits on a band one step lighter than the page, with a
+   hairline under it - the reference's "SAFETY" bar exactly. */
 QFrame#PageHead {{
-    background-color: {_C["HEADER"]};
+    background-color: {_RAISED};
     border-bottom: 1px solid {_EDGE};
     padding-bottom: 12px;
 }}
 QFrame#Footer {{
-    background-color: {_C["HEADER"]};
-    border-top: 1px solid {_EDGE};
+    background-color: {_BLACK};
+    border-top: 1px solid {_EDGE_BLACK};
 }}
+/* Black rectangles on the charcoal, square-cornered. */
 QFrame#Panel, QFrame#Card, QFrame#Tile {{
-    background-color: {_C["PANEL"]};
-    border: 1px solid {_EDGE};
-    border-radius: 10px;
+    background-color: {_BLACK};
+    border: 1px solid {_EDGE_BLACK};
+    border-radius: 2px;
 }}
 
 QLabel#AppTitle {{ font-family: {_DISPLAY}; font-size: 26px; font-weight: 700; }}
@@ -189,7 +197,7 @@ QLabel#BrandName {{
     font-size: 14px;
     font-weight: 700;
     color: {_C["TEXT"]};
-    letter-spacing: -0.2px;
+    letter-spacing: 0.2px;
 }}
 QLabel#BrandSub {{
     font-family: {_MONO};
@@ -199,14 +207,15 @@ QLabel#BrandSub {{
 }}
 QLabel#PageTitle {{
     font-family: {_DISPLAY};
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 700;
-    letter-spacing: -0.4px;
+    letter-spacing: 0.4px;
 }}
 QLabel#SectionTitle {{
     font-family: {_DISPLAY};
-    font-size: 13.5px;
-    font-weight: 600;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
     color: {_C["TEXT"]};
 }}
 QLabel#Caption {{
@@ -214,91 +223,91 @@ QLabel#Caption {{
     font-size: 10px;
     font-weight: 600;
     color: {_C["TEXT_FAINT"]};
-    letter-spacing: 1.1px;
+    letter-spacing: 1.2px;
 }}
 QLabel#Muted {{ color: {_C["TEXT_DIM"]}; font-size: 12px; }}
 QLabel#Faint {{ color: {_C["TEXT_FAINT"]}; font-size: 11.5px; }}
 QLabel#KpiValue {{
     font-family: {_DISPLAY};
-    font-size: 30px;
+    font-size: 32px;
     font-weight: 700;
-    letter-spacing: -0.6px;
+    letter-spacing: -0.4px;
 }}
 QLabel#KpiUnit {{ font-size: 12px; color: {_C["TEXT_FAINT"]}; }}
 
+/* Pills. An outline with white text for the ordinary action, as the
+   reference draws "view overview". */
 QPushButton {{
-    background-color: {_C["PANEL"]};
-    border: 1px solid {_EDGE_CONTROL};
-    border-radius: 6px;
-    padding: 8px 14px;
+    background-color: transparent;
+    border: 1px solid #6e675d;
+    border-radius: 17px;
+    padding: 8px 18px;
     font-family: {_DISPLAY};
-    font-weight: 500;
-    color: #2f3a31;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    color: {_C["TEXT"]};
 }}
 QPushButton:hover {{
-    background-color: {_HOVER};
-    border-color: {_LIME_FILL};
-    color: {_C["ACCENT_DIM"]};
+    border-color: {_LIME};
+    color: {_LIME};
 }}
-QPushButton:pressed {{ background-color: {_TINT}; }}
-QPushButton:disabled {{ color: {_C["TEXT_FAINT"]}; border-color: {_EDGE}; }}
-/* The one loud control on the page, and the same lime as the rail: near-black
-   on it, because white on this green is barely a contrast at all. */
+QPushButton:pressed {{ background-color: #1c1a18; }}
+QPushButton:disabled {{ color: {_C["TEXT_FAINT"]}; border-color: {_EDGE_SOFT}; }}
+/* And a filled lime pill with black on it for the main one. */
 QPushButton#Primary {{
-    background-color: {_LIME_FILL};
-    border: 1px solid {_LIME_FILL};
-    color: {_ON_LIME};
+    background-color: {_LIME};
+    border: 1px solid {_LIME};
+    color: {_BLACK};
     font-weight: 700;
 }}
 QPushButton#Primary:hover {{
-    background-color: {_LIME};
-    border-color: {_LIME};
-    color: {_ON_LIME};
+    background-color: {_C["ACCENT_SOFT"]};
+    border-color: {_C["ACCENT_SOFT"]};
+    color: {_BLACK};
 }}
 QPushButton#Primary:disabled {{
-    background-color: #d9e8c0;
-    border-color: #d9e8c0;
-    color: #ffffff;
+    background-color: #4a5c30;
+    border-color: #4a5c30;
+    color: #9aa88a;
 }}
 QPushButton#Warning {{
-    background-color: {_C["PANEL"]};
-    border: 1px solid #e9a8a8;
-    border-radius: 6px;
+    background-color: transparent;
+    border: 1px solid {_C["DANGER"]};
+    border-radius: 17px;
     color: {_C["DANGER"]};
-    font-weight: 600;
+    font-weight: 700;
 }}
 QPushButton#Warning:hover {{
-    background-color: #fdf3f3;
+    background-color: {_C["DANGER"]};
     border-color: {_C["DANGER"]};
-    color: {_C["DANGER"]};
+    color: {_BLACK};
 }}
 
 QLineEdit, QTextEdit, QPlainTextEdit {{
-    background-color: {_C["PANEL_ALT"]};
-    border: 1px solid {_EDGE_CONTROL};
-    border-radius: 6px;
+    background-color: #121110;
+    border: 1px solid {_EDGE};
+    border-radius: 3px;
     padding: 8px 10px;
     color: {_C["TEXT"]};
-    selection-background-color: {_C["ACCENT_SOFT"]};
-    selection-color: #ffffff;
+    selection-background-color: {_C["ACCENT_DIM"]};
+    selection-color: {_BLACK};
 }}
 QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus {{
-    border: 1px solid {_C["ACCENT_SOFT"]};
-    background-color: {_C["PANEL"]};
+    border: 1px solid {_LIME};
 }}
 QComboBox {{
-    background-color: {_C["PANEL_ALT"]};
-    border: 1px solid {_EDGE_CONTROL};
-    border-radius: 6px;
+    background-color: #121110;
+    border: 1px solid {_EDGE};
+    border-radius: 3px;
     padding: 7px 10px;
     color: {_C["TEXT"]};
 }}
-QComboBox:focus {{ border: 1px solid {_C["ACCENT_SOFT"]}; }}
+QComboBox:focus {{ border: 1px solid {_LIME}; }}
 QComboBox QAbstractItemView {{
-    background-color: {_C["PANEL"]};
+    background-color: {_BLACK};
     border: 1px solid {_EDGE};
-    selection-background-color: {_TINT};
-    selection-color: {_C["ACCENT_DIM"]};
+    selection-background-color: {_SELECTED};
+    selection-color: {_LIME};
 }}
 QCheckBox {{ spacing: 8px; background: transparent; }}
 /* The indicator has to be drawn here. A style sheet rule anywhere on QCheckBox
@@ -307,36 +316,36 @@ QCheckBox {{ spacing: 8px; background: transparent; }}
 QCheckBox::indicator {{
     width: 15px;
     height: 15px;
-    border: 1px solid {_EDGE_CONTROL};
-    border-radius: 4px;
-    background-color: #ffffff;
+    border: 1px solid {_EDGE};
+    border-radius: 3px;
+    background-color: #121110;
 }}
-QCheckBox::indicator:hover {{ border-color: {_C["ACCENT_SOFT"]}; }}
+QCheckBox::indicator:hover {{ border-color: {_LIME}; }}
 QCheckBox::indicator:checked {{
-    background-color: {_C["ACCENT"]};
-    border-color: {_C["ACCENT"]};
-    image: url({_ASSETS}/check.svg);
+    background-color: {_LIME};
+    border-color: {_LIME};
+    image: url({_ASSETS}/check-dark.svg);
 }}
 QCheckBox::indicator:disabled {{
-    border-color: {_EDGE};
-    background-color: {_C["PANEL_ALT"]};
+    border-color: {_EDGE_SOFT};
+    background-color: #1a1815;
 }}
 
 QTableWidget {{
-    background-color: {_C["PANEL"]};
+    background-color: {_BLACK};
     alternate-background-color: {_C["PANEL_ALT"]};
-    gridline-color: {_EDGE_SOFT};
-    border: 1px solid {_EDGE};
-    border-radius: 10px;
-    selection-background-color: {_TINT};
-    selection-color: {_C["TEXT"]};
+    gridline-color: {_EDGE_BLACK};
+    border: 1px solid {_EDGE_BLACK};
+    border-radius: 2px;
+    selection-background-color: {_SELECTED};
+    selection-color: {_LIME};
 }}
 QHeaderView::section {{
-    background-color: {_C["PANEL"]};
+    background-color: {_BLACK};
     color: {_C["TEXT_FAINT"]};
-    padding: 9px 10px;
+    padding: 10px 10px;
     border: none;
-    border-bottom: 1px solid {_EDGE};
+    border-bottom: 1px solid {_EDGE_BLACK};
     font-family: {_MONO};
     font-weight: 600;
     font-size: 10px;
@@ -350,21 +359,22 @@ QTabBar::tab {{
     padding: 9px 18px;
     border-bottom: 2px solid transparent;
     font-family: {_DISPLAY};
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: 0.4px;
 }}
 QTabBar::tab:selected {{
-    color: {_C["ACCENT_DIM"]};
-    border-bottom: 2px solid {_LIME_FILL};
+    color: {_LIME};
+    border-bottom: 2px solid {_LIME};
 }}
 
 QProgressBar {{
-    background-color: {_C["PANEL_ALT"]};
-    border: 1px solid {_EDGE};
+    background-color: #121110;
+    border: 1px solid {_EDGE_BLACK};
     border-radius: 4px;
     height: 6px;
     text-align: center;
 }}
-QProgressBar::chunk {{ background-color: {_LIME_FILL}; border-radius: 3px; }}
+QProgressBar::chunk {{ background-color: {_LIME}; border-radius: 3px; }}
 
 QScrollBar:vertical {{
     background: transparent;
@@ -399,51 +409,49 @@ QScrollBar::add-line, QScrollBar::sub-line {{
     height: 0px;
 }}
 QScrollBar::add-page, QScrollBar::sub-page {{ background: transparent; }}
-/* On the green rail a grey handle disappears; there it is the deepest green
-   at a third strength. */
-QFrame#Sidebar QScrollBar::handle:vertical {{ background: rgba(20, 37, 10, 0.32); }}
-QFrame#Sidebar QScrollBar::handle:vertical:hover {{ background: rgba(20, 37, 10, 0.52); }}
 
-QStatusBar {{ background-color: {_C["HEADER"]}; color: {_C["TEXT_DIM"]}; }}
-QMenuBar {{ background-color: {_C["HEADER"]}; color: {_C["TEXT_DIM"]}; }}
-QMenuBar::item:selected {{ background: {_TINT}; color: {_C["ACCENT_DIM"]}; }}
+QStatusBar {{ background-color: {_BLACK}; color: {_C["TEXT_DIM"]}; }}
+QMenuBar {{
+    background-color: {_BLACK};
+    color: {_C["TEXT_DIM"]};
+    border-bottom: 1px solid {_EDGE_BLACK};
+}}
+QMenuBar::item:selected {{ background: {_SELECTED}; color: {_LIME}; }}
 QMenu {{
-    background-color: {_C["PANEL"]};
+    background-color: {_BLACK};
     border: 1px solid {_EDGE};
-    border-radius: 8px;
     padding: 4px;
 }}
-QMenu::item {{ padding: 6px 22px; border-radius: 5px; }}
-QMenu::item:selected {{ background: {_TINT}; color: {_C["ACCENT_DIM"]}; }}
+QMenu::item {{ padding: 6px 22px; }}
+QMenu::item:selected {{ background: {_SELECTED}; color: {_LIME}; }}
 QToolTip {{
-    background-color: {_C["TEXT"]};
-    color: #ffffff;
-    border: 1px solid {_C["TEXT"]};
+    background-color: {_BLACK};
+    color: {_C["TEXT"]};
+    border: 1px solid {_LIME};
     padding: 6px;
 }}
 """
 
 
 def prepare() -> None:
-    """Repoint the shared colours. Call this *before* building a window.
+    """Repoint the shared colours and the typography. Call this *before* a
+    window is built.
 
     Half of a re-skin cannot be delivered by a style sheet: badges, KPI values,
     chart series, the rail's safety card and the navigation icons read the
     palette in their constructors, so the palette has to be in place before any
-    of them is built. On this design that includes the icon on the selected nav
-    item, which sits on a white pill and so is the deepest green rather than
-    white, and the safety card, which sits on the lime and so is white rather
-    than a wash.
+    of them is built.
 
-    Column headings are set in small capitals here, as in the white-and-grey
-    build: Qt style sheets have no ``text-transform``, so the capitals can only
-    come from the code that sets the heading text.
+    The capitals and the numbered rail are the same kind of thing one step
+    further on - a style sheet cannot change letter case at all, and cannot
+    insert a number - so they come from :func:`ui.theme.apply_look`, which every
+    theme calls with the full set so that none of these switches can be left
+    behind by the theme prepared before it.
     """
-    from .components import DataTable
-    from .theme import apply_palette
+    from .theme import apply_look, apply_palette
 
     apply_palette(PALETTE)
-    DataTable.UPPERCASE_HEADERS = True
+    apply_look(table_headers_upper=True, nav_upper=True, nav_numbered=True)
 
 
 def dress(window: "QMainWindow") -> None:

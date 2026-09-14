@@ -18,7 +18,7 @@ against it colour by colour:
 * status in the light-ground versions of the same hues: green ``#16a34a``,
   amber ``#d97706``, red ``#dc2626``;
 * table headings in small capitals - which is why :func:`prepare` sets
-  ``DataTable.UPPERCASE_HEADERS``: Qt style sheets have no ``text-transform``,
+  ``LOOK.TABLE_HEADERS_UPPER``: Qt style sheets have no ``text-transform``,
   so capitals can only come from the code that builds the heading.
 
 A light design is not a dark one with the colours flipped. Two things have to
@@ -326,7 +326,7 @@ QTableWidget {{
     selection-color: {_C["TEXT"]};
 }}
 /* Small capitals in mono over a hairline, the design's table heading exactly.
-   The capitals themselves come from DataTable.UPPERCASE_HEADERS - Qt style
+   The capitals themselves come from LOOK.TABLE_HEADERS_UPPER - Qt style
    sheets have no text-transform. */
 QHeaderView::section {{
     background-color: {_C["PANEL"]};
@@ -433,11 +433,10 @@ def prepare() -> None:
     one more: Qt style sheets have no ``text-transform``, so the only place the
     capitals can come from is the code that sets the heading text.
     """
-    from .components import DataTable
-    from .theme import apply_palette
+    from .theme import apply_look, apply_palette
 
     apply_palette(PALETTE)
-    DataTable.UPPERCASE_HEADERS = True
+    apply_look(table_headers_upper=True)
 
 
 def dress(window: "QMainWindow") -> None:

@@ -27,7 +27,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from .theme import BAND_COLORS, C
+from .theme import BAND_COLORS, C, LOOK
 
 __all__ = ["KpiTile", "Panel", "Sidebar", "HeaderBar", "DataTable", "Pill", "FieldRow"]
 
@@ -372,11 +372,6 @@ class DataTable(QTableWidget):
     DENSITY_KEYS = {"sif_rate", "priority"}
     #: A flexible column never shrinks past this, however narrow the window gets.
     MIN_FLEX_WIDTH = 96
-    #: Headings in capitals, for a skin that asks for them. Qt style sheets have
-    #: no ``text-transform``, so a design that sets its table headings in small
-    #: capitals can only get them from here. A theme module sets this in its
-    #: ``prepare()``, before any table is built.
-    UPPERCASE_HEADERS = False
 
     def __init__(self, columns: Sequence[Tuple[str, str, int]],
                  on_select: Optional[Callable[[int], None]] = None,
@@ -393,8 +388,10 @@ class DataTable(QTableWidget):
         self._columns = list(columns)
         self._flex = [index for index, (_, key, _) in enumerate(columns)
                       if key in set(flex_keys)]
+        # Capitals, when the skin asks for them: Qt style sheets have no
+        # text-transform, so this is the only place they can come from.
         self.setHorizontalHeaderLabels(
-            [label.upper() if self.UPPERCASE_HEADERS else label
+            [label.upper() if LOOK.TABLE_HEADERS_UPPER else label
              for label, _, _ in columns])
         self.setAlternatingRowColors(True)
         self.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)

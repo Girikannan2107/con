@@ -21,7 +21,7 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
-from ui.theme import PAGE_MARGIN, C
+from ui.theme import LOOK, PAGE_MARGIN, C
 from ui2.icons import nav_icon
 
 __all__ = ["Sidebar", "HeaderBar", "scrollable", "titled"]
@@ -64,7 +64,7 @@ class Sidebar(QFrame):
         # keeps every label readable; the ceiling stops it eating the content.
         self.setMinimumWidth(212)
         self.setMaximumWidth(330)
-        self.resize(238, self.height())
+        self.resize(258, self.height())
         self._buttons: Dict[str, QPushButton] = {}
         self._badges: Dict[str, QLabel] = {}
 
@@ -85,17 +85,25 @@ class Sidebar(QFrame):
 
         group = QButtonGroup(self)
         group.setExclusive(True)
-        for key, label in items:
+        for position, (key, label) in enumerate(items, start=1):
             row = QWidget()
             row_layout = QHBoxLayout(row)
             row_layout.setContentsMargins(0, 0, 12, 0)
             row_layout.setSpacing(0)
 
-            button = QPushButton(f"  {label}")
+            # Capitals and a number when the skin asks for them - a style
+            # sheet can do neither. The number goes inside the button rather
+            # than beside it so that the selected item's fill covers both, and
+            # a numbered rail drops its icons: a design that counts its pages
+            # does not also picture them.
+            text = label.upper() if LOOK.NAV_UPPER else label
+            text = f"  {position:02d}   {text}" if LOOK.NAV_NUMBERED else f"  {text}"
+            button = QPushButton(text)
             button.setObjectName("Nav")
             button.setCheckable(True)
-            button.setIcon(nav_icon(key))
-            button.setIconSize(QSize(18, 18))
+            if not LOOK.NAV_NUMBERED:
+                button.setIcon(nav_icon(key))
+                button.setIconSize(QSize(18, 18))
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.clicked.connect(lambda _checked, name=key: self.navigated.emit(name))
             group.addButton(button)

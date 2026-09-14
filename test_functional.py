@@ -1043,8 +1043,8 @@ class TestTranslationWithoutAManualProbe(unittest.TestCase):
 
 
 @unittest.skipUnless(HAS_PYQT, "PyQt6 is not installed")
-class TestGreenRailBuild(unittest.TestCase):
-    """app.py: the same console as app2.py, wearing the green-rail skin.
+class TestBlackAndLimeBuild(unittest.TestCase):
+    """app.py: the same console as app2.py, wearing the black-and-lime skin.
 
     The point of the re-skin being an entry-point concern rather than a second
     controller is that neither build can quietly lose a capability the other
@@ -1100,12 +1100,12 @@ class TestGreenRailBuild(unittest.TestCase):
         self.assertNotEqual(C.ACCENT, before, "the green skin must not be the first")
         self.assertIn(green_theme.PALETTE["APP"], window.styleSheet())
 
-    def test_the_page_is_light_and_the_rail_is_green(self) -> None:
-        """Measured off the rendered window, not read off the style sheet.
+    def test_the_rail_is_black_and_the_page_is_the_charcoal(self) -> None:
+        """The design in one assertion, measured off the rendered window.
 
-        This is the design in one assertion: one green column on the left, and
-        a light page everywhere to the right of it. A skin that only half
-        applies fails here rather than in front of an audience.
+        A black rail against a warm charcoal page, and the lime present
+        somewhere on it. A skin that only half applies fails here rather than
+        in front of an audience.
         """
         from PyQt6.QtGui import QColor
 
@@ -1119,32 +1119,30 @@ class TestGreenRailBuild(unittest.TestCase):
         self.app.processEvents()
 
         image = window.grab().toImage()
+        ground = QColor(green_theme.PALETTE["APP"])
         for x, y in ((400, 500), (1100, 700), (700, 300)):
-            # An average over a patch, not one pixel: a single sample can land
-            # on a glyph and call a white page dark.
             samples = [QColor(image.pixel(x + dx, y + dy)).lightness()
                        for dx in range(0, 40, 4) for dy in range(0, 40, 4)]
-            self.assertGreater(sum(samples) / len(samples), 170,
-                               f"the page around ({x}, {y}) is dark")
+            average = sum(samples) / len(samples)
+            self.assertLess(average, 120, f"the page around ({x}, {y}) is too light")
+            self.assertGreater(average, 8, f"the page around ({x}, {y}) is pure black")
+        self.assertLess(ground.lightness(), 120)
 
-        # From below the menu bar and the header band down to the foot of the
-        # window: every one of these is inside the rail.
-        rail = QColor(green_theme.PALETTE["SIDEBAR"])
-        for y in (90, 240, 460, 680, 840):
+        # The rail, clear of the first item - which is selected, and so is
+        # meant to be a step lighter - down to the foot of the window.
+        for y in (160, 300, 500, 700):
             colour = QColor(image.pixel(6, y))
-            self.assertLess(abs(colour.hue() - rail.hue()), 12,
-                            f"the rail at y={y} is not the green it should be")
-            self.assertGreater(colour.saturation(), 120,
-                               f"the rail at y={y} has lost its colour")
+            self.assertLess(colour.lightness(), 40,
+                            f"the rail at y={y} is not black")
 
     def test_nothing_inside_the_rail_paints_the_page_over_it(self) -> None:
         """The failure this design invites, held by a test.
 
         The nav list is a plain widget in a scroll area in the rail, and a plain
-        widget paints the application background - the page's grey - straight
-        over the green. It is cleared in the style sheet by name, which is easy
-        to lose and impossible to miss on screen, so it is measured here: a
-        column of pixels down the rail, all of them green.
+        widget paints the application background - the page's charcoal -
+        straight over the black. It is cleared in the style sheet by name, which
+        is easy to lose and impossible to miss on screen, so it is measured
+        here: a column of pixels down the rail, all of them black.
         """
         from PyQt6.QtGui import QColor
 
@@ -1157,14 +1155,41 @@ class TestGreenRailBuild(unittest.TestCase):
         self.app.processEvents()
 
         image = window.grab().toImage()
-        grey = []
-        for y in range(90, 780, 10):
-            colour = QColor(image.pixel(200, y))   # inside the rail, right of the icons
-            if colour.saturation() < 60:
-                grey.append((y, colour.name()))
-        # The white pill on the selected item and the safety card are meant to
-        # be there; a grey block is not, and would run for dozens of rows.
-        self.assertLess(len(grey), 14, f"the page is painting over the rail: {grey[:6]}")
+        lifted = []
+        for y in range(100, 780, 10):
+            colour = QColor(image.pixel(250, y))   # inside the rail, right of the text
+            if colour.lightness() > 40:
+                lifted.append((y, colour.name()))
+        # The selected row and the safety card are meant to be lighter; a block
+        # of the page laid over the rail would run for dozens of rows.
+        self.assertLess(len(lifted), 14, f"the page is painting over the rail: {lifted[:6]}")
+
+    def test_the_rail_is_numbered_in_capitals_and_drops_its_icons(self) -> None:
+        """The reference counts its pages instead of picturing them.
+
+        A style sheet can neither change letter case nor insert a number, so
+        both come from apply_look() before the window is built - and the switch
+        is global, so the risk is that it leaks into the next window built in
+        the same process. Both themes set the full set; this holds that.
+        """
+        import app
+        import app2
+
+        light = app.build_window()
+        self.addCleanup(light.close)
+        first = light.sidebar._buttons["workflow"]
+        self.assertIn("01", first.text())
+        self.assertIn("WORKFLOW MAP", first.text())
+        self.assertTrue(first.icon().isNull(), "a numbered rail should not also picture")
+        self.assertEqual(light.hotspot_view.table.horizontalHeaderItem(0).text(), "TYPE")
+
+        navy = app2.build_window()
+        self.addCleanup(navy.close)
+        other = navy.sidebar._buttons["workflow"]
+        self.assertNotIn("01", other.text())
+        self.assertIn("Workflow map", other.text())
+        self.assertFalse(other.icon().isNull(), "the deep navy build keeps its icons")
+        self.assertEqual(navy.hotspot_view.table.horizontalHeaderItem(0).text(), "Type")
 
     def test_the_white_and_grey_skin_is_still_its_design_token_for_token(self) -> None:
         """The other light skin, kept and still pinned to its reference.
@@ -1188,7 +1213,7 @@ class TestGreenRailBuild(unittest.TestCase):
         self.assertIn("border-radius: 10px", light_theme.STYLESHEET)
 
     def test_the_page_heading_sits_on_a_band_of_its_own(self) -> None:
-        """White above the grey page, as the design has it."""
+        """One step lighter than the page, with a hairline under it."""
         from PyQt6.QtGui import QColor
         from PyQt6.QtWidgets import QFrame
 
@@ -1208,7 +1233,12 @@ class TestGreenRailBuild(unittest.TestCase):
         image = window.grab().toImage()
         head = heads[0]
         point = head.mapTo(window, head.rect().center())
-        self.assertEqual(QColor(image.pixel(point.x(), point.y())).name(), "#ffffff")
+        from ui import green_theme
+
+        band = QColor(image.pixel(point.x(), point.y()))
+        page = QColor(green_theme.PALETTE["APP"])
+        self.assertGreater(band.lightness(), page.lightness(),
+                           "the heading band does not stand off the page")
 
     def test_column_headings_are_capitals_in_this_build_only(self) -> None:
         """Qt cannot uppercase in a style sheet, so the skin says so in code.
@@ -1229,26 +1259,6 @@ class TestGreenRailBuild(unittest.TestCase):
         self.addCleanup(navy.close)
         self.assertEqual(navy.hotspot_view.table.horizontalHeaderItem(0).text(),
                          "Type")
-
-    def test_the_selected_nav_icon_is_not_white_on_a_pale_pill(self) -> None:
-        """The selected icon is painted in code, so the palette has to carry it.
-
-        White on the deep navy's teal wash is right; white on this design's pale
-        grey selection is an empty pill. The colour therefore lives in the
-        palette rather than in the icon routine.
-        """
-        from PyQt6.QtGui import QColor
-
-        import app
-        from ui import green_theme
-        from ui.theme import C
-
-        window = app.build_window()
-        self.addCleanup(window.close)
-
-        self.assertEqual(C.ICON_ON, green_theme.PALETTE["ICON_ON"])
-        self.assertLess(QColor(C.ICON_ON).lightness(), 128,
-                        "a pale icon on a pale selection is invisible")
 
     def test_a_long_field_value_cannot_widen_the_detail_panel(self) -> None:
         """A long barrier list must elide, not push the panel past its pane.

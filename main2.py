@@ -85,7 +85,7 @@ APP_SUBTITLE = ("Sense the Risk  ·  Stop the Incident   |   UA/UC and near-miss
 UPDATE_CHECK_DELAY_MS = 4000
 
 #: Starting width of the navigation rail; the operator can drag it.
-RAIL_WIDTH = 238
+RAIL_WIDTH = 258
 
 NAV_ITEMS = (
     ("workflow", "Workflow map"),
