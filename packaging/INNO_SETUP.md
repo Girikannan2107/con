@@ -35,8 +35,8 @@ python --version
 ## Step 2 - Get the code and its dependencies
 
 ```bat
-git clone https://github.com/tedo001/SIF.git
-cd SIF
+git clone https://github.com/tedo001/sentra.git
+cd sentra
 git checkout tedo
 
 python -m venv .venv
@@ -228,6 +228,47 @@ smaller model rather than waiting.
 Without Ollama the console still runs. Non-English reports are analysed in
 their original wording and that fact is recorded on the report; nothing is
 silently skipped.
+
+---
+
+## Step 7 - Publishing the installer on GitHub
+
+A GitHub **release asset** is the right home for it. Release assets are allowed
+up to 2 GB each, so an 80 MB slim installer is nowhere near the limit; a full
+build can be, and if it exceeds 2 GB it has to be split or hosted elsewhere.
+
+**Never commit the `.exe` to the repository.** Git refuses a file over 100 MB,
+and even under it the binary stays in the history of every clone forever. The
+release page is a separate store; `dist\` is already in `.gitignore`.
+
+Four things the console's own update check requires of a release - it is not
+decoration, it is what stops an operator installing an unverified binary:
+
+| | Why |
+| --- | --- |
+| Tag `v2.0.0`, matching `sif/version.py` | a release older than the running build is offered forever |
+| **Release label: None**, not Pre-release | the updater skips pre-releases unless a build opts in |
+| Keep the file name ending in `-setup.exe` | that suffix is how the Windows asset is recognised |
+| Attach `SHA256SUMS.txt` | an asset with no checksum, or a wrong one, is refused |
+
+Generate the checksum file beside the installer:
+
+```powershell
+$name = "SENTRA-2.0.0-setup.exe"
+$hash = (Get-FileHash ".\dist\installer\$name" -Algorithm SHA256).Hash.ToLower()
+"$hash  $name" | Out-File -Encoding ascii .\dist\installer\SHA256SUMS.txt
+```
+
+Then attach **both** files to the release. The format is one line per asset -
+the hash, two spaces, the file name - which is what `sha256sum` writes on Linux
+and what the workflow produces in CI.
+
+> **Do not do both at once.** Pushing a tag `v2.0.0` starts
+> `.github/workflows/release.yml`, which builds and publishes that release
+> itself; creating the release by hand with the same tag makes the workflow
+> fail when it tries to create one that already exists. Either publish by hand
+> from a tag the workflow does not build, or push the tag and let CI do all of
+> it.
 
 ---
 

@@ -73,7 +73,7 @@ investigator and not a system of record.
 **Step 1 — get the code.**
 
 ```bash
-git clone https://github.com/tedo001/SIF.git
+git clone https://github.com/tedo001/sentra.git
 cd SIF
 git checkout tedo
 ```

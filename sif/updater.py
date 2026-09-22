@@ -49,7 +49,7 @@ LOGGER = logging.getLogger(__name__)
 
 #: ``owner/repo`` the console checks. Overridable so a fork or an internal
 #: mirror can be pointed at without a rebuild.
-DEFAULT_REPOSITORY = os.environ.get("SIF_UPDATE_REPO", "tedo001/SIF")
+DEFAULT_REPOSITORY = os.environ.get("SIF_UPDATE_REPO", "tedo001/sentra")
 API_ROOT = os.environ.get("SIF_UPDATE_API", "https://api.github.com")
 CHECKSUM_ASSET = "SHA256SUMS.txt"
 USER_AGENT = f"SIF-Insight-Console/{__version__}"

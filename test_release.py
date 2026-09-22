@@ -145,7 +145,7 @@ class TestUpdateChecker(unittest.TestCase):
         MockGitHub.mode = "release"
 
     def checker(self, current="2.0.0", **kwargs) -> UpdateChecker:
-        return UpdateChecker(repository="tedo001/SIF", current_version=current, **kwargs)
+        return UpdateChecker(repository="tedo001/sentra", current_version=current, **kwargs)
 
     def test_finds_a_newer_release(self) -> None:
         info = self.checker().check()
@@ -241,7 +241,7 @@ class TestUpdateChecker(unittest.TestCase):
         MockGitHub.mode = "missing"
         info = self.checker().check()
         self.assertFalse(info.no_release)
-        self.assertIn("tedo001/SIF", info.error)
+        self.assertIn("tedo001/sentra", info.error)
         self.assertIn("SIF_UPDATE_TOKEN", info.error)
 
     def test_prereleases_are_ignored_unless_asked_for(self) -> None:

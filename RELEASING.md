@@ -129,7 +129,7 @@ and the check starts finding it.
 Configuration, if a fork or an internal mirror is used:
 
 ```bash
-SIF_UPDATE_REPO=myorg/SIF        # default: tedo001/SIF
+SIF_UPDATE_REPO=myorg/sentra     # default: tedo001/sentra
 SIF_UPDATE_TOKEN=ghp_...         # only for a private repository
 SIF_UPDATE_API=https://github.mycorp/api/v3   # GitHub Enterprise
 ```
