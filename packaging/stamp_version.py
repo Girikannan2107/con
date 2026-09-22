@@ -20,6 +20,11 @@ import re
 import sys
 
 VERSION_FILE = pathlib.Path(__file__).resolve().parent.parent / "sif" / "version.py"
+#: The Inno Setup script carries the same version as a fallback, for a compile
+#: from its own window - which passes no /DAppVersion and would otherwise build
+#: an installer that reports 0.0.0.
+INSTALLER_FILE = pathlib.Path(__file__).resolve().parent / "installer.iss"
+INSTALLER_LINE = re.compile(r'(?m)^(  #define AppVersion ")[^"]+(")$')
 SEMVER = re.compile(r"^v?\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$")
 
 
@@ -43,18 +48,31 @@ def main(argv=None) -> int:
         print("error: could not find the __version__ line", file=sys.stderr)
         return 1
 
+    installer = INSTALLER_FILE.read_text(encoding="utf-8")
+    fallback = INSTALLER_LINE.search(installer)
+
     if args.check:
         if current.group(1) != version:
             print(f"error: tag {args.tag} does not match sif/version.py "
                   f"({current.group(1)}). Run: python packaging/stamp_version.py {args.tag}",
                   file=sys.stderr)
             return 1
-        print(f"version.py matches {args.tag}")
+        if fallback is not None and fallback.group(0).split('"')[1] != version:
+            print(f"error: tag {args.tag} does not match the fallback in "
+                  f"installer.iss. Run: python packaging/stamp_version.py {args.tag}",
+                  file=sys.stderr)
+            return 1
+        print(f"version.py and installer.iss match {args.tag}")
         return 0
 
     updated = re.sub(r'(?m)^__version__ = "[^"]+"$', f'__version__ = "{version}"', source)
     updated = re.sub(r'(?m)^BUILD = "[^"]*"$', f'BUILD = "{args.build}"', updated)
     VERSION_FILE.write_text(updated, encoding="utf-8")
+
+    if fallback is not None:
+        INSTALLER_FILE.write_text(
+            INSTALLER_LINE.sub(rf'\g<1>{version}\g<2>', installer), encoding="utf-8")
+
     print(f"stamped {version}" + (f"+{args.build}" if args.build else ""))
     return 0
 

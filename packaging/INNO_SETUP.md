@@ -148,16 +148,26 @@ python packaging\stamp_version.py v2.1.0
 
 ### Doing it from the Inno Setup window instead
 
-If you prefer not to use the command line: open Inno Setup, **File → Open**,
-choose `packaging\installer.iss`, then **Build → Compile** (Ctrl+F9). One change
-first - without `/DAppVersion` on the command line the script falls back to
-`0.0.0`, so edit the top of the file:
+The window does the same job as `ISCC.exe`; it *is* the same compiler.
 
-```pascal
-#ifndef AppVersion
-  #define AppVersion "2.0.0"
-#endif
-```
+1. **File → Open**, and choose `E:\SIF\packaging\installer.iss`.
+2. **Build → Compile** (Ctrl+F9).
+3. Watch the pane at the bottom. It ends with `Successful compile` and the path
+   it wrote.
+
+You get the same `dist\installer\SENTRA-2.0.0-setup.exe`. The paths inside the
+script (`..\dist\SIFConsole`, `..\dist\installer`) are resolved against the
+script's own folder, not against whatever folder the compiler was started in, so
+opening it from anywhere works.
+
+The one difference: the window passes no `/DAppVersion`, so the installer takes
+the fallback at the top of the script. That fallback is kept equal to
+`sif/version.py` - `stamp_version.py` rewrites both, and a test fails if they
+drift - so a compile from the window carries the right version without you
+editing anything.
+
+> "Non-commercial use only" in the title bar is the edition you chose when
+> installing Inno Setup. It changes nothing about the installer it builds.
 
 ---
 

@@ -10,6 +10,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import tempfile
 import threading
 import unittest
@@ -287,6 +288,29 @@ class TestReleaseWorkflow(unittest.TestCase):
     def test_pyinstaller_spec_is_present(self) -> None:
         self.assertTrue(os.path.isfile(os.path.join("packaging", "sif_console.spec")))
         self.assertTrue(os.path.isfile(os.path.join("packaging", "installer.iss")))
+
+    def test_the_installer_falls_back_to_the_packages_own_version(self) -> None:
+        """Compiling from the Inno Setup window passes no /DAppVersion.
+
+        The script's fallback is then the version the installer carries, and a
+        0.0.0 installer reports older than every release - which makes the
+        in-app update check offer the same update forever. stamp_version.py
+        rewrites this line with sif/version.py, and this holds the two together
+        between releases.
+        """
+        from sif.version import __version__
+
+        with open(os.path.join("packaging", "installer.iss"), encoding="utf-8") as handle:
+            text = handle.read()
+        match = re.search(r'(?m)^  #define AppVersion "([^"]+)"$', text)
+        self.assertIsNotNone(match, "the fallback definition has moved or changed shape")
+        self.assertEqual(match.group(1), __version__)
+
+    def test_the_spec_builds_the_shipped_interface(self) -> None:
+        """app.py is what an operator has been shown; app2.py is the other skin."""
+        with open(os.path.join("packaging", "sif_console.spec"), encoding="utf-8") as handle:
+            text = handle.read()
+        self.assertIn('ENTRY = "app.py"', text)
 
 
 if __name__ == "__main__":

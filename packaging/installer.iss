@@ -11,8 +11,13 @@
 ; The version always comes from the git tag via /DAppVersion, so the installer's
 ; "Programs and Features" entry, the app's own version and the tag agree.
 
+; The fallback matters: compiling from the Inno Setup window rather than the
+; command line passes no /DAppVersion, and a "0.0.0" installer reports a version
+; older than any release - which makes the in-app update check offer the same
+; update forever. stamp_version.py rewrites this line alongside sif/version.py,
+; so the two cannot drift apart.
 #ifndef AppVersion
-  #define AppVersion "0.0.0"
+  #define AppVersion "2.0.0"
 #endif
 
 #define AppName "SENTRA"
