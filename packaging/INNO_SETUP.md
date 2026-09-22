@@ -75,6 +75,14 @@ set SIF_BUILD_VARIANT=slim
 pyinstaller packaging\sif_console.spec --noconfirm
 ```
 
+In PowerShell an environment variable is set differently - `set` is an alias for
+something else entirely there:
+
+```powershell
+$env:SIF_BUILD_VARIANT = "slim"
+pyinstaller packaging\sif_console.spec --noconfirm
+```
+
 When it finishes you have `dist\SIFConsole\`. **Test that folder before going
 on** - it is the thing the installer ships:
 
@@ -86,16 +94,40 @@ Open the **Engines** page. Each line says what was found on this machine. If the
 encoder or the model says "not installed" in a full build, the package is
 missing something and Step 4 would only wrap the problem up in an installer.
 
-> Want an icon on the executable? Put a `.ico` file somewhere and build with
-> `set SIF_ICON=C:\path\to\sentra.ico` before the `pyinstaller` line.
+> Want an icon on the executable? Put a `.ico` file somewhere and set `SIF_ICON`
+> to its path before the `pyinstaller` line - `set SIF_ICON=C:\path\to\sentra.ico`
+> in Command Prompt, `$env:SIF_ICON = "C:\path\to\sentra.ico"` in PowerShell.
 
 ---
 
 ## Step 4 - Build the installer with Inno Setup
 
+**Which terminal you are in matters here.** VS Code and PyCharm open PowerShell
+by default; the Start menu's "Command Prompt" is `cmd.exe`. The two parse this
+command differently, so use the line that matches your prompt.
+
+`PS E:\SIF>` - **PowerShell**. A command that begins with a quoted string is a
+string *literal* to PowerShell, not a program to run, so it needs the call
+operator `&` in front of the path:
+
+```powershell
+& "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" "/DAppVersion=2.0.0" packaging\installer.iss
+```
+
+`E:\SIF>` - **Command Prompt**, where the quotes are enough on their own:
+
 ```bat
 "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DAppVersion=2.0.0 packaging\installer.iss
 ```
+
+Without the `&`, PowerShell answers:
+
+```
+Unexpected token 'DAppVersion=2.0.0' in expression or statement.
+```
+
+which is the parser objecting to the line, not Inno Setup objecting to the
+script.
 
 The result is:
 
@@ -194,6 +226,8 @@ silently skipped.
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `ISCC.exe` is not recognised | Inno Setup is not on PATH | use the full path, as in Step 4 |
+| `Unexpected token 'DAppVersion=2.0.0'` | PowerShell read the quoted path as a string | put `&` in front of it - see Step 4 |
+| `The system cannot find the file specified` from ISCC | the script name is mistyped | it is `installer.iss`, one `s` at the end and no trailing letter |
 | Inno Setup says the source folder is empty | Step 3 did not run, or ran elsewhere | `dist\SIFConsole\` must exist next to `packaging\`; compile from the repository root |
 | The installed app opens and closes at once | a module PyInstaller did not find | build once with `console=True` in the spec's `EXE(...)` and run the exe from a Command Prompt to read the traceback |
 | Engines page says "not installed" in a full build | the package was missing from the build environment | `pip install -r requirements.txt` inside the venv, then rebuild from Step 3 |
