@@ -19,8 +19,8 @@ How the reference is built, and how that maps onto a console:
     be pressed, and the item you are on. Nothing decorative is lime, which is
     why it still reads as "press this" after a page of it.
 ``capitals``
-    The rail is numbered 01, 02, 03 and set in capitals, as are the column
-    headings. Qt style sheets can do neither, so both come from
+    The rail is set in capitals, as are the column headings. A Qt style sheet
+    cannot change letter case at all, so both come from
     :func:`ui.theme.apply_look`, called in :func:`prepare` below.
 
 Two shapes matter as much as the colours. Buttons are pills - fully rounded,
@@ -29,9 +29,9 @@ with white text where it is not. Cards are square-cornered black rectangles,
 not rounded ones; rounding them softens a design whose whole character is that
 it does not soften.
 
-The one thing deliberately not transcribed is the pictographic navigation. The
-reference numbers its list instead of picturing it, so a numbered rail drops
-the drawn icons rather than showing both.
+The one thing deliberately not transcribed is the pictographic navigation: the
+reference's rail is a list of words and nothing else, so this one drops the
+drawn icons that the other skins carry.
 """
 
 from __future__ import annotations
@@ -73,8 +73,8 @@ PALETTE = {
     "ACCENT_DIM": "#6cc40f",
     "BLUE": "#4f63f5",
     "PURPLE": "#a78bfa",
-    # The selected rail item is lime text on a lighter charcoal row, so its
-    # icon - where a skin draws icons at all - is lime too.
+    # The selected rail item is lime text on a lighter charcoal row. This skin
+    # draws no rail icons, but the colour is part of the palette all the same.
     "ICON_ON": "#8cef1e",
 
     "SCROLL_TRACK": "#000000",
@@ -141,8 +141,8 @@ QWidget#HeaderBrand QLabel#BrandName {{
     letter-spacing: 0.2px;
 }}
 
-/* Capitals and a number come from apply_look(); the spacing and the lime are
-   here. Square, not rounded: the reference's selected row is a rectangle. */
+/* The capitals come from apply_look(); the spacing and the lime are here.
+   Square, not rounded: the reference's selected row is a rectangle. */
 QPushButton#Nav {{
     background-color: transparent;
     border: none;
@@ -442,16 +442,16 @@ def prepare() -> None:
     palette in their constructors, so the palette has to be in place before any
     of them is built.
 
-    The capitals and the numbered rail are the same kind of thing one step
-    further on - a style sheet cannot change letter case at all, and cannot
-    insert a number - so they come from :func:`ui.theme.apply_look`, which every
-    theme calls with the full set so that none of these switches can be left
-    behind by the theme prepared before it.
+    The capitals and the wordless rail are the same kind of thing one step
+    further on - a style sheet cannot change letter case, and cannot take an
+    icon off a button - so they come from :func:`ui.theme.apply_look`, which
+    every theme calls with the full set so that none of these switches can be
+    left behind by the theme prepared before it.
     """
     from .theme import apply_look, apply_palette
 
     apply_palette(PALETTE)
-    apply_look(table_headers_upper=True, nav_upper=True, nav_numbered=True)
+    apply_look(table_headers_upper=True, nav_upper=True, nav_icons=False)
 
 
 def dress(window: "QMainWindow") -> None:

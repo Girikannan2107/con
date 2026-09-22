@@ -98,17 +98,20 @@ class LOOK:
     TABLE_HEADERS_UPPER = False
     #: Navigation labels in capitals.
     NAV_UPPER = False
-    #: Navigation items numbered 01, 02, 03 - and drawn without their icons,
-    #: because a design that numbers its rail does not also picture it.
+    #: Navigation items numbered 01, 02, 03.
     NAV_NUMBERED = False
+    #: Navigation items drawn with their icons. Off for a design whose rail is
+    #: a list of words and nothing else.
+    NAV_ICONS = True
 
 
 def apply_look(*, table_headers_upper: bool = False, nav_upper: bool = False,
-               nav_numbered: bool = False) -> None:
+               nav_numbered: bool = False, nav_icons: bool = True) -> None:
     """Set every typographic switch at once, so none can be left behind."""
     LOOK.TABLE_HEADERS_UPPER = table_headers_upper
     LOOK.NAV_UPPER = nav_upper
     LOOK.NAV_NUMBERED = nav_numbered
+    LOOK.NAV_ICONS = nav_icons
 
 
 #: Risk band -> colour, used by every table and chart.

@@ -64,7 +64,7 @@ class Sidebar(QFrame):
         # keeps every label readable; the ceiling stops it eating the content.
         self.setMinimumWidth(212)
         self.setMaximumWidth(330)
-        self.resize(258, self.height())
+        self.resize(238, self.height())
         self._buttons: Dict[str, QPushButton] = {}
         self._badges: Dict[str, QLabel] = {}
 
@@ -91,17 +91,15 @@ class Sidebar(QFrame):
             row_layout.setContentsMargins(0, 0, 12, 0)
             row_layout.setSpacing(0)
 
-            # Capitals and a number when the skin asks for them - a style
-            # sheet can do neither. The number goes inside the button rather
-            # than beside it so that the selected item's fill covers both, and
-            # a numbered rail drops its icons: a design that counts its pages
-            # does not also picture them.
+            # Capitals and a number when the skin asks for them - a style sheet
+            # can do neither. The number goes inside the button rather than
+            # beside it, so that the selected item's fill covers both.
             text = label.upper() if LOOK.NAV_UPPER else label
             text = f"  {position:02d}   {text}" if LOOK.NAV_NUMBERED else f"  {text}"
             button = QPushButton(text)
             button.setObjectName("Nav")
             button.setCheckable(True)
-            if not LOOK.NAV_NUMBERED:
+            if LOOK.NAV_ICONS:
                 button.setIcon(nav_icon(key))
                 button.setIconSize(QSize(18, 18))
             button.setCursor(Qt.CursorShape.PointingHandCursor)

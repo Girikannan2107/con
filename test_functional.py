@@ -1157,37 +1157,38 @@ class TestBlackAndLimeBuild(unittest.TestCase):
         image = window.grab().toImage()
         lifted = []
         for y in range(100, 780, 10):
-            colour = QColor(image.pixel(250, y))   # inside the rail, right of the text
+            colour = QColor(image.pixel(220, y))   # inside the rail, right of the text
             if colour.lightness() > 40:
                 lifted.append((y, colour.name()))
         # The selected row and the safety card are meant to be lighter; a block
         # of the page laid over the rail would run for dozens of rows.
         self.assertLess(len(lifted), 14, f"the page is painting over the rail: {lifted[:6]}")
 
-    def test_the_rail_is_numbered_in_capitals_and_drops_its_icons(self) -> None:
-        """The reference counts its pages instead of picturing them.
+    def test_the_rail_is_words_in_capitals_and_nothing_else(self) -> None:
+        """The reference's rail is a list of words - no icons, no numbering.
 
-        A style sheet can neither change letter case nor insert a number, so
-        both come from apply_look() before the window is built - and the switch
-        is global, so the risk is that it leaks into the next window built in
-        the same process. Both themes set the full set; this holds that.
+        A style sheet can neither change letter case nor take an icon off a
+        button, so both come from apply_look() before the window is built - and
+        those switches are global, so the risk is that they leak into the next
+        window built in the same process. Every theme sets the full set; this
+        builds both windows in one process to hold that.
         """
         import app
         import app2
 
-        light = app.build_window()
-        self.addCleanup(light.close)
-        first = light.sidebar._buttons["workflow"]
-        self.assertIn("01", first.text())
-        self.assertIn("WORKFLOW MAP", first.text())
-        self.assertTrue(first.icon().isNull(), "a numbered rail should not also picture")
-        self.assertEqual(light.hotspot_view.table.horizontalHeaderItem(0).text(), "TYPE")
+        lime = app.build_window()
+        self.addCleanup(lime.close)
+        first = lime.sidebar._buttons["workflow"]
+        self.assertEqual(first.text().strip(), "WORKFLOW MAP")
+        self.assertFalse(any(character.isdigit() for character in first.text()),
+                         "the rail is not numbered")
+        self.assertTrue(first.icon().isNull(), "this rail carries no icons")
+        self.assertEqual(lime.hotspot_view.table.horizontalHeaderItem(0).text(), "TYPE")
 
         navy = app2.build_window()
         self.addCleanup(navy.close)
         other = navy.sidebar._buttons["workflow"]
-        self.assertNotIn("01", other.text())
-        self.assertIn("Workflow map", other.text())
+        self.assertEqual(other.text().strip(), "Workflow map")
         self.assertFalse(other.icon().isNull(), "the deep navy build keeps its icons")
         self.assertEqual(navy.hotspot_view.table.horizontalHeaderItem(0).text(), "Type")
 
