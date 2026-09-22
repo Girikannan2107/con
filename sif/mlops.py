@@ -43,6 +43,7 @@ from typing import Dict, List, Optional, Sequence, Tuple
 import numpy as np
 
 from .lexical import CRITICAL_BARRIERS, HIGH_ENERGY_SOURCES, IOGP_RULES
+from .paths import writable
 from .pipeline import PipelineResult
 from .scoring import BARRIER_CRITICALITY, DEFAULT_WEIGHT, ENERGY_SEVERITY
 
@@ -89,7 +90,8 @@ MODEL_FILE = "sif_xgboost.json"
 METADATA_FILE = "sif_xgboost.meta.json"
 #: MLflow 3 put the filesystem store into maintenance mode, so the default is
 #: the SQLite backend it recommends - still a single local file, no server to run.
-DEFAULT_TRACKING_URI = "sqlite:///mlflow.db"
+MLFLOW_FILE = "mlflow.db"
+DEFAULT_TRACKING_URI = f"sqlite:///{MLFLOW_FILE}"
 DEFAULT_EXPERIMENT = "sif-insight-console"
 
 
@@ -366,6 +368,23 @@ class SIFModel:
 # ---------------------------------------------------------------------------
 
 
+def default_tracking_uri() -> str:
+    """The SQLite tracking file, resolved for an installed build.
+
+    MLflow takes a URI rather than a path, and a relative one is resolved
+    against the working directory - which for an installed application is the
+    folder it was installed into, where it may not write. The absolute form is
+    the scheme plus the path with forward slashes, which lands correctly on
+    both platforms: ``sqlite:////home/u/mlflow.db`` on POSIX, where the path
+    already starts with a slash, and ``sqlite:///C:/Users/u/mlflow.db`` on
+    Windows, where it starts with a drive letter.
+    """
+    path = writable(MLFLOW_FILE)
+    if not os.path.isabs(path):
+        return DEFAULT_TRACKING_URI
+    return "sqlite:///" + path.replace(os.sep, "/")
+
+
 class MLflowTracker:
     """Logs training runs to MLflow, or degrades to a no-op when it is absent."""
 
@@ -458,9 +477,18 @@ class MLflowTracker:
 class MLOpsService:
     """What the Settings tab drives: train, track, persist, predict."""
 
-    def __init__(self, model_directory: str = MODEL_DIRECTORY,
-                 tracking_uri: str = DEFAULT_TRACKING_URI,
+    def __init__(self, model_directory: str = "",
+                 tracking_uri: str = "",
                  experiment: str = DEFAULT_EXPERIMENT) -> None:
+        """Empty paths mean "wherever this build may write" - see :mod:`sif.paths`.
+
+        An installed console cannot write into its own Program Files folder, so
+        the model and the tracking database follow the preferences and the audit
+        trail into the per-user application-data directory. A checkout keeps
+        both beside the code, where they have always been.
+        """
+        model_directory = model_directory or writable(MODEL_DIRECTORY)
+        tracking_uri = tracking_uri or default_tracking_uri()
         self.model_directory = model_directory
         self.model = SIFModel()
         self.tracker = MLflowTracker(tracking_uri, experiment)

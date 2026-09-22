@@ -349,6 +349,24 @@ class TestOllamaEngine(unittest.TestCase):
         self.assertTrue(engine.ready())
         self.assertIn("ready", engine.status())
 
+    def test_a_specific_tag_is_not_the_same_model_as_another(self) -> None:
+        """`gemma2` and `gemma2:9b` are two entries on the server, not one.
+
+        Only the untagged/`:latest` pair is the same model. Treating any shared
+        stem as a match would report "ready" for a name Ollama will refuse at
+        generate time, which is the failure the readiness check exists to catch
+        - and the status line names what *is* pulled, so the operator can fix
+        the name rather than guess at it.
+        """
+        engine = self.engine("gemma2")
+        self.assertFalse(engine.has_model())
+        status = engine.status()
+        self.assertIn("ollama pull gemma2", status)
+        self.assertIn("available:", status)
+        self.assertTrue(OllamaEngine._same_model("gemma2", "gemma2:latest"))
+        self.assertTrue(OllamaEngine._same_model("gemma2:latest", "gemma2"))
+        self.assertFalse(OllamaEngine._same_model("gemma2", "gemma2:9b"))
+
     def test_ready_is_false_when_the_model_is_missing(self) -> None:
         """A server that answers is not the same as a server that can work."""
         engine = self.engine("not-pulled")

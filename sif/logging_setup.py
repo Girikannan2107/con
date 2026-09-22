@@ -24,6 +24,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Callable, Deque, List, Optional
 
+from .paths import writable
+
 __all__ = ["LogEntry", "RingBufferHandler", "configure_logging", "get_ring_buffer",
            "set_level", "LOG_LEVELS", "log_file_path", "active_log_file"]
 
@@ -125,13 +127,18 @@ def active_log_file() -> str:
     return getattr(handler, "baseFilename", "") if handler is not None else ""
 
 
-def configure_logging(level: str = DEFAULT_LEVEL, directory: str = DEFAULT_DIRECTORY,
+def configure_logging(level: str = DEFAULT_LEVEL, directory: str = "",
                       to_stderr: bool = True) -> RingBufferHandler:
     """Install the handlers once and return the ring buffer.
 
     Safe to call repeatedly: later calls only adjust the level. The ``directory``
     of the first call wins for the whole process - see :func:`active_log_file`.
+
+    An empty ``directory`` means "wherever this build may write": beside the code
+    from a checkout, and under the per-user application-data directory from an
+    installed build, which cannot write into its own Program Files folder.
     """
+    directory = directory or writable(DEFAULT_DIRECTORY)
     global _ring, _file_handler, _stream_handler
 
     with _state_lock:

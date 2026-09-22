@@ -1187,5 +1187,62 @@ class TestTrainingCorpus(unittest.TestCase):
         self.assertEqual(overlap, [], f"these rows appear in both sets: {overlap}")
 
 
+
+class TestWhereAnInstalledBuildWrites(unittest.TestCase):
+    """A packaged console must not try to write into Program Files.
+
+    From a checkout the log directory, the model and the MLflow database sit
+    beside the code, which is what a developer wants. Installed, that folder
+    belongs to the installer and a standard user cannot write to it: Windows
+    then either fails the write or silently redirects it into VirtualStore,
+    and the console comes up with no log to show and no model to load.
+    """
+
+    def tearDown(self) -> None:
+        if hasattr(sys, "frozen"):
+            del sys.frozen
+
+    def test_a_checkout_writes_beside_the_code(self) -> None:
+        from sif import paths
+        from sif.mlops import MLOpsService
+
+        self.assertFalse(paths.frozen())
+        self.assertEqual(paths.writable("logs"), "logs")
+        self.assertEqual(MLOpsService().model_directory, "models")
+        self.assertEqual(MLOpsService().tracker.tracking_uri, "sqlite:///mlflow.db")
+
+    def test_a_frozen_build_writes_under_the_user_data_directory(self) -> None:
+        from sif import paths
+
+        from sif.mlops import MLOpsService
+
+        sys.frozen = True                      # what PyInstaller sets
+        root = paths.data_directory()
+
+        self.assertTrue(paths.writable("logs").startswith(root))
+        self.assertTrue(MLOpsService().model_directory.startswith(root))
+        uri = MLOpsService().tracker.tracking_uri
+        self.assertTrue(uri.startswith("sqlite:///"), uri)
+        self.assertIn(root.replace(os.sep, "/"), uri)
+        # An absolute path handed in explicitly is left exactly as it is.
+        self.assertEqual(paths.writable(os.path.abspath("elsewhere")),
+                         os.path.abspath("elsewhere"))
+
+    def test_an_explicit_path_still_wins(self) -> None:
+        import shutil
+
+        from sif.mlops import MLOpsService
+
+        sys.frozen = True
+        folder = tempfile.mkdtemp(prefix="sif-explicit-")
+        self.addCleanup(shutil.rmtree, folder, True)
+
+        service = MLOpsService(model_directory=folder,
+                               tracking_uri="sqlite:///given.db")
+
+        self.assertEqual(service.model_directory, folder)
+        self.assertEqual(service.tracker.tracking_uri, "sqlite:///given.db")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

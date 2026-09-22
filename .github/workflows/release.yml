@@ -128,7 +128,7 @@ jobs:
           mkdir -p dist/installer
           hdiutil create -volname "SIF Insight Console" \
             -srcfolder "dist/SENTRA.app" -ov -format UDZO \
-            "dist/installer/SIF-Console-${{ steps.version.outputs.version }}.dmg"
+            "dist/installer/SENTRA-${{ steps.version.outputs.version }}.dmg"
           ls -lh dist/installer
 
       # ---- Linux: relocatable tarball ----------------------------------
@@ -137,7 +137,7 @@ jobs:
         run: |
           mkdir -p dist/installer
           tar -C dist -czf \
-            "dist/installer/SIF-Console-${{ steps.version.outputs.version }}-linux-x86_64.tar.gz" \
+            "dist/installer/SENTRA-${{ steps.version.outputs.version }}-linux-x86_64.tar.gz" \
             SIFConsole
           ls -lh dist/installer
 
@@ -184,9 +184,9 @@ jobs:
             echo
             echo "| Platform | File |"
             echo "| --- | --- |"
-            echo "| Windows | \`SIF-Console-*-setup.exe\` |"
-            echo "| macOS | \`SIF-Console-*.dmg\` |"
-            echo "| Linux | \`SIF-Console-*-linux-x86_64.tar.gz\` |"
+            echo "| Windows | \`SENTRA-*-setup.exe\` |"
+            echo "| macOS | \`SENTRA-*.dmg\` |"
+            echo "| Linux | \`SENTRA-*-linux-x86_64.tar.gz\` |"
             echo
             echo "The packaged build ships the interface and the deterministic rule"
             echo "engine. For the semantic encoder, the learned model or scanned-page"

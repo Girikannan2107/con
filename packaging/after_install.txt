@@ -1,0 +1,44 @@
+SENTRA is installed.
+
+WHAT WORKS IMMEDIATELY
+  Paste or import reports, analyse them, read the dashboard, the risk hotspots
+  and the evidence behind every verdict, work the human-review bench, export
+  the decision trail, and train the model on what has been reviewed. Scanned
+  PDFs and photographs are read by the bundled OCR; PDFs with a text layer are
+  read exactly, without it.
+
+WHAT NEEDS ONE MORE INSTALL: THE LOCAL LLM
+  Translation of non-English reports, and the optional fourth opinion on each
+  narrative, run on a local Ollama service. It is a separate program with its
+  own model files, so no installer can carry it for you.
+
+    1. Install Ollama from https://ollama.com/download
+    2. Open a command prompt and pull a model:
+
+           ollama pull llama3.2        (about 2 GB - the default)
+           ollama pull gemma2          (about 5.5 GB - larger, slower)
+
+    3. Leave Ollama running, open SENTRA, go to ENGINES, tick "Use the local
+       LLM as an additional analyser", put the model name in the Model box and
+       press "Check connection".
+
+  A model that does not fit your graphics card runs partly on the processor and
+  is several times slower. Check with "ollama ps": a model reading 100% GPU is
+  fully loaded; one reading 20%/80% CPU/GPU is not, and a smaller model will be
+  faster.
+
+  Without Ollama the console still runs, and every non-English report is
+  analysed in its original wording with that fact recorded. Nothing is silently
+  skipped.
+
+WHERE YOUR DATA IS KEPT
+  %APPDATA%\SIF Insight Console
+    settings.json       preferences
+    audit.jsonl         the audit trail
+    review_decisions.json  every decision an expert recorded
+    logs\               the rolling application log
+    models\             the trained model
+    mlflow.db           training-run history
+
+  Uninstalling SENTRA leaves that folder alone. The decision trail is a record,
+  and a reinstall should find it where it was.
