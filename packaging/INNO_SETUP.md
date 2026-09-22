@@ -180,6 +180,14 @@ Run `SENTRA-2.0.0-setup.exe` on a machine that has never had the code on it.
 2. The last page of the wizard shows what still needs doing - the local LLM.
 3. Start it from the Start menu.
 
+The wizard should look like this - the tasks page, the summary, the extraction,
+and the after-install note the script supplies:
+
+| | |
+| --- | --- |
+| ![Select additional tasks](../docs/install-1-tasks.png) | ![Ready to install](../docs/install-2-ready.png) |
+| ![Installing](../docs/install-3-installing.png) | ![Information](../docs/install-4-information.png) |
+
 Then check the three things a packaged build gets wrong most often:
 
 | Check | Where | What you should see |

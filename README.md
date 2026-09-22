@@ -12,11 +12,19 @@ decision-grade **SIF (Serious Injury & Fatality) intelligence**.
 The engine is SENTRA; `sif/` remains the package name, and the settings folder
 keeps its old name so an existing operator's review decisions are not orphaned.
 
-![Console](docs/screenshot.png)
+![The reports page](docs/ui-reports.png)
 
-Other pages: [Settings — system logging & MLOps](docs/settings-mlops.png) ·
-[Analytics](docs/analytics.png) · [Batch upload](docs/batch-upload.png) ·
-[Human review queue](docs/review-queue.png).
+*Every analysed report, the verdict, and the cues behind it. The console ships
+in this design; `app2.py` runs the same window in a deep-navy one.*
+
+| | |
+| --- | --- |
+| ![Workflow map](docs/ui-workflow.png) | ![Dashboard](docs/ui-dashboard.png) |
+| **Workflow map** — every capability, its live status on this machine, and its own control. | **Dashboard** — headline metrics and the exposure charts for the whole corpus. |
+| ![Risk hotspots](docs/ui-hotspots.png) | ![Human review](docs/ui-review.png) |
+| **Risk hotspots** — repeats ranked by SIF-precursor density, not by volume. | **Human review** — the queue on the left, the whole case and three keys on the right. |
+| ![Ingest and OCR](docs/ui-ingest.png) | ![Engines](docs/ui-engines.png) |
+| **Ingest** — text, CSV, PDFs, scans and photographs, in twelve languages. | **Engines** — what is installed on this machine and what each one is doing. |
 
 > **Start here:** [USING_SENTRA.md](USING_SENTRA.md) — the click-by-click flow,
 > from first launch to working the review queue.
@@ -25,53 +33,98 @@ Other pages: [Settings — system logging & MLOps](docs/settings-mlops.png) ·
 > must be used under, step-by-step install and daily process, how to train the
 > model on reviewed labels, and what has to change before it is trusted on live
 > safety data.
+>
+> **Building the installer:** [packaging/INNO_SETUP.md](packaging/INNO_SETUP.md)
+> — PyInstaller and Inno Setup, step by step, and how to publish a release.
 
 ## Run it
 
+### Installed, on Windows
+
+Go to the **[releases page](https://github.com/tedo001/sentra/releases)** and,
+under **Assets**, **click `SENTRA-2.0.0-setup.exe`** to download it. The two
+"Source code" entries beneath it are the code, not the application. Run the
+installer and start SENTRA from the Start menu — Windows 10 or newer, 64-bit,
+and no Python needed.
+
+| | |
+| --- | --- |
+| ![Select additional tasks](docs/install-1-tasks.png) | ![Ready to install](docs/install-2-ready.png) |
+| ![Installing](docs/install-3-installing.png) | ![Information](docs/install-4-information.png) |
+
+The build carries the sentence encoder, the learned model and the OCR engine, so
+nothing is fetched afterwards — which is why the download is large. The last
+page of the wizard names the one thing no installer can carry: the local Ollama
+model that performs translation.
+
+[INSTRUCTION.md §3A](INSTRUCTION.md) walks through it screen by screen.
+
+The installed console keeps its data in `%APPDATA%\SIF Insight Console` —
+preferences, the audit trail, the decision trail, logs, the trained model and
+the training history — never in its own installation folder, which a standard
+user cannot write to. Uninstalling leaves that folder alone.
+
+### From source
+
 ```bash
 pip install -r requirements.txt
-python app.py       # build 1 - the original console
-python app2.py      # build 2 - workflow map, Indian-language OCR, local LLM
+python app.py        # the console
+python app2.py       # the same console, deep-navy design
 ```
 
-### Two builds
+Click **Load 5 seed incidents** for an instant demo, or **Import CSV export**
+and pick `samples/near_miss_reports.csv`. The first run downloads the
+sentence-transformer (~90 MB); the status bar reports progress and the window
+stays responsive. To run with no model and no network, pick **Offline — lexical
+rules only** on the Engines page, or export `SIF_ENCODER=hashing`.
 
-`app.py` is unchanged. `app2.py` is a second front end over the same analysis
-stack, adding four things:
+### Two entry points, one console
 
-| Addition | What it means |
+`app.py` and `app2.py` build the *same* window from the same controller
+(`main2.py`) and differ only by a palette and a style sheet — so a fix to any
+capability lands in both, and neither can drift into being a stale copy of the
+other.
+
+| | |
 | --- | --- |
-| **Workflow map** | The first page maps every capability - ingest, OCR, translate, analyse, dashboard, hotspots, review, learn - with a live status on each and its own control. ![map](docs/app2-workflow.png) |
-| **Review bench** | The queue on the left, the whole case on the right, and three keys to decide it. Decisions persist as they are made, keep an audit trail, and become the labels the model trains on. ![review bench](docs/review-bench.png) |
-| **Indian-language ingestion** | PaddleOCR in Hindi, Marathi, Tamil, Telugu, Kannada, Urdu, Nepali, Sanskrit, Bhojpuri, Maithili and Konkani. Non-English reports are translated to English before analysis, and the original is kept as the audit record. |
-| **Local LLM analyser (Ollama)** | Optional fourth opinion, running on the operator's own machine. It never overrides the pipeline; where it disagrees, the report is queued for a human. |
-| **Separate dashboard, no pictographs** | Metrics and charts live on their own page, away from ingestion and the matrix, and the interface uses no emoji, so it renders identically on a workstation with no emoji font. |
+| `app.py` | Black cards on a warm charcoal ground, lime for everything pressable, the rail in capitals. This is what the installer ships. |
+| `app2.py` | The same console in near-black navy with a teal accent, icons in the rail. |
 
-Ollama is optional and not bundled: install it from ollama.com, then
-`ollama pull llama3.2`. Without it, build 2 runs exactly as build 1 does and the
-workflow map says which stage is unavailable and why.
+A third skin, white and grey with a blue accent, lives in `ui/light_theme.py`
+and is one line away in `build_window()`.
 
-Click **Load 5 Seed Incidents** for an instant demo, or **Batch Import CSV** and
-pick `sample_reports.csv`. The first run downloads the sentence-transformer
-(~90 MB); the status bar reports progress and the UI stays responsive.
+### What is optional
 
-To run with no model and no network, pick **Offline — lexical rules only** in the
-encoder selector, or export `SIF_ENCODER=hashing`.
+Everything except PyQt6 is detected at run time, and the **Engines** page says
+which of them this machine has:
 
-Everything optional is detected at run time. Without `xgboost`/`mlflow` the
-console runs on the rule and semantic paths and the Settings tab says so; without
-`paddleocr` it still reads PDFs that carry a text layer.
+These are what an installed build carries by default; a source install carries
+whatever you `pip install`.
+
+| Missing | What still works |
+| --- | --- |
+| `sentence-transformers` | Everything, on the deterministic lexical engine — it ranks and enriches but never raises a flag of its own. |
+| `xgboost` / `mlflow` | Everything but the learned third opinion and the run history. |
+| `paddleocr` | Everything but scanned pages; PDFs with a text layer are still read exactly. |
+| Ollama | Everything but translation and the optional fourth opinion. A non-English report is analysed in its original wording, and that fact is recorded on the report rather than silently skipped. |
+
+Ollama is a separate service and is not bundled by any build: install it from
+ollama.com, then `ollama pull llama3.2` (or `gemma2`), and point the Engines
+page at it.
 
 ### The pages
 
 | Page | What it is for |
 | --- | --- |
-| **Dashboard** | KPI tiles, the three exposure charts, ingestion box, incident matrix and the evidence panel for the selected report. |
-| **Report Analysis** | The dashboard with the ingestion box focused — paste one narrative, read its verdict and evidence. |
-| **Batch Upload** | Drop in PDFs, scans, photographs or CSVs; shows which backend read each file, its OCR confidence and the extracted text. |
-| **Incident Matrix / Risk Hotspots / Human Review** | Full-width versions of the three result tables. |
-| **Analytics** | Corpus-level charts plus the learned model's summary and feature importances. |
-| **Settings** | System logging, MLflow + XGBoost controls, and OCR configuration. |
+| **Workflow map** | Every capability in one picture — ingest, OCR, translate, analyse, dashboard, hotspots, review, learn — each with a live status and its own control, so the path from a scanned report to a trained model is visible rather than implied. |
+| **Ingest and OCR** | Paste text, import a CSV export, or add PDFs, scans and photographs; shows which backend read each file, its OCR confidence and the extracted text, with per-document preview, analyse and remove. |
+| **Dashboard** | KPI tiles and the four exposure charts for the whole corpus. |
+| **Reports and evidence** | Every analysed report, and for the selected one: the plain-English brief, the report as filed, the extracted fields and the cues behind the verdict. |
+| **Risk hotspots** | Sites, activities, rule-at-location repeats and repeat barrier failures above the repeat threshold, ranked by SIF-precursor density. |
+| **Human review** | The queue, the case, and three keys to decide it — plus the decision trail, exportable as CSV. |
+| **Analytics** | Corpus-level charts, the learned model's summary and its feature importances. |
+| **Engines** | The encoder, the local LLM, the learned model and MLOps: what is installed, what is running, and the controls for each. |
+| **Settings** | Preferences, the live log view and the audit trail. |
 
 ### Settings — system logging and MLOps
 
@@ -223,16 +276,20 @@ git tag -a v2.1.0 -m "..." && git push origin v2.1.0
 | `ui/assets/` | Scrollbar stepper arrows - Qt cannot draw a triangle reliably from a style sheet alone. |
 | `sif/lexical.py` | `LexicalEngine` — IOGP, energy, barrier, activity and location knowledge as patterns; the deterministic backbone. Holds the 5 seed narratives. |
 | `sif/prototypes.py` | Natural-language label descriptions for zero-shot semantic classification. |
-| `main.py` | PyQt6 layer: `MainWindow`, `AnalysisWorker` (`QThread`), KPI cards, three panels. |
-| `app.py` | Launcher — dependency check, `QApplication` bootstrap, event loop. |
+| `main2.py` | The controller both entry points build on: `MainWindow`, the workers, every page's wiring. |
+| `main.py` | The first console, kept as a single-window reference build. |
+| `app.py`, `app2.py` | Launchers — dependency check, palette, `QApplication` bootstrap, event loop. They differ by which theme module they call. |
+| `ui/theme.py` | The shared colour table and the typographic switches a skin sets before a window is built - a Qt style sheet can change neither letter case nor an icon. |
+| `ui/green_theme.py`, `ui/gov_theme.py`, `ui/light_theme.py` | The three skins: black and lime, deep navy and teal, white and grey. Each is a palette plus a style sheet, applied either side of construction. |
+| `sif/paths.py` | Where a build may write: beside the code from a checkout, under the per-user data directory when frozen. An installed application cannot write into its own Program Files folder. |
 | `train_model.py` | Command-line trainer: analyse a CSV, train on reviewed labels, log the run to MLflow. |
 | `sif/updater.py` | Checks GitHub Releases, verifies the download's checksum, launches the installer. |
 | `sif/version.py` | The one place the version lives; CI stamps it from the git tag. |
-| `packaging/`, `.github/workflows/release.yml` | PyInstaller spec, Inno Setup script, tag-driven release pipeline. |
-| `test_sif.py` | 74 unit tests across every stage, the fusion guards, MLOps, document extraction and the Qt widgets. |
-| `test_app2.py` | 67 tests for build 2: language handling, the local LLM, the workflow map, the review bench, the decision log and the OCR model cache. |
-| `test_release.py` | 23 tests for versioning, the update checker and the release pipeline. |
-| `test_functional.py` | 20 end-to-end tests: both windows driven against the real `samples/` files, from import through review to a trained model. |
+| `packaging/`, `.github/workflows/release.yml` | PyInstaller spec, Inno Setup script, the step-by-step build guide, tag-driven release pipeline. |
+| `test_sif.py` | 102 unit tests across every stage, the fusion guards, MLOps, document extraction, where a frozen build writes, and the Qt widgets. |
+| `test_app2.py` | 103 tests: language handling, the local LLM and its model names, the workflow map, the review bench, the decision log and the OCR model cache. |
+| `test_release.py` | 25 tests for versioning, the update checker and the release pipeline. |
+| `test_functional.py` | 60 end-to-end tests: both windows driven against the real `samples/` files, from import through review to a trained model, plus the skins measured off the rendered pixels. |
 | `sample_reports.csv` | Six mock rows for the batch-import demo. |
 | `samples/` | Test material for every ingestion path - an 18-report CSV, a shift log, a text-layer PDF, a scan with no text layer, and reports in five Indian languages. See `samples/README.md`. |
 | `reports/` | Generated analysis report (PDF). |
@@ -411,10 +468,22 @@ cleanly on window close.
 ## Tests
 
 ```bash
-python -m unittest -v
+python -m unittest discover -p "test_*.py"
 ```
 
-On a headless machine prefix with `QT_QPA_PLATFORM=offscreen`. The suite pins the
-offline encoder, so it needs no model download and is deterministic; 72 tests
-cover every stage, the fusion guards, the MLOps round-trip, document extraction
-and the Qt widgets.
+On a headless machine prefix with `QT_QPA_PLATFORM=offscreen`, and with
+`SIF_ENCODER=hashing` to pin the offline encoder so the run needs no model
+download and is deterministic.
+
+**290 tests.** They cover every pipeline stage and the fusion guards, the MLOps
+round-trip, document extraction and the OCR model cache, the local LLM's
+readiness and model-name handling, the review bench and its decision trail, the
+update checker and the release pipeline — and the interface itself, driven
+headless against the real `samples/` files from import through review to a
+trained model.
+
+Some of them measure rendered pixels rather than state, because a few classes of
+interface bug are invisible to any other kind of test: a widget painting the
+page's background over a coloured rail, a checkbox indicator that draws nothing,
+a table wider than the page it sits on, a field long enough to push a panel past
+its pane.

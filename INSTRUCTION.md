@@ -70,11 +70,60 @@ investigator and not a system of record.
 
 ## 3. Install — step by step
 
+There are two ways in. **Section 3A** is the installer, which is what an
+operator uses: no Python, no command line. **Section 3B** is the source
+install, for a developer or an air-gapped site building its own.
+
+### 3A. The Windows installer
+
+**Step 1 — download it.** Open the releases page:
+
+> **https://github.com/tedo001/sentra/releases**
+
+Under **Assets** on the newest release, **click `SENTRA-2.0.0-setup.exe`** to
+download it. (The two "Source code" entries below it are the code, not the
+application — they will not install anything.) It is a large file: the build
+carries the sentence encoder, the learned model and the OCR engine with it, so
+nothing has to be fetched afterwards.
+
+**Step 2 — run it.** Windows 10 or newer, 64-bit. SmartScreen warns on first
+run because the installer is not code-signed: **More info → Run anyway**.
+
+**Step 3 — choose the shortcuts.**
+
+![Select additional tasks](docs/install-1-tasks.png)
+
+**Step 4 — review and install.** The page lists exactly what it is about to do;
+nothing else is written outside the install folder and your own app-data folder.
+
+![Ready to install](docs/install-2-ready.png)
+
+**Step 5 — wait.** It extracts several gigabytes, including the machine-learning
+runtime. A few minutes on a plant workstation is normal.
+
+![Installing](docs/install-3-installing.png)
+
+**Step 6 — read the last page.** It names the one thing no installer can carry
+— the local Ollama model that performs translation — and where your data is
+kept.
+
+![Information](docs/install-4-information.png)
+
+Then start SENTRA from the Start menu. Nothing in Section 3B is needed.
+
+Where your data lives: `%APPDATA%\SIF Insight Console` — preferences, the audit
+trail, the decision trail, logs, the trained model and the training history.
+Never the installation folder, which a standard user cannot write to.
+Uninstalling leaves that folder alone: the decision trail is a record, and a
+reinstall should find it where it was.
+
+### 3B. From source
+
 **Step 1 — get the code.**
 
 ```bash
 git clone https://github.com/tedo001/sentra.git
-cd SIF
+cd sentra
 git checkout tedo
 ```
 
