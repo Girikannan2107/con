@@ -216,7 +216,7 @@ page at it.
 ### The learned layer (MLOps)
 
 `sif/mlops.py` turns each result into a **named, interpretable feature vector**
-(45 columns: the two SIF factors, energy and barrier families as multi-hot flags,
+(46 columns: the two SIF factors, energy and barrier families as multi-hot flags,
 severity weights, the rule one-hot, text statistics) and fits an
 `XGBClassifier` with stratified cross-validation. Feature importance therefore
 reads as safety language — `p_sif`, `barrier_criticality`, `energy::Electrical
