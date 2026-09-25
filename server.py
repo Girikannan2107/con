@@ -179,9 +179,12 @@ def _seed_initial_data():
 # Startup Event
 @app.on_event("startup")
 def on_startup():
-    state.warm_up()
-    _seed_initial_data()
-    state.add_log("INFO", "server", "SENTRA FastAPI UI Adapter ready on http://localhost:8000")
+    import threading
+    def _init():
+        state.warm_up()
+        _seed_initial_data()
+        state.add_log("INFO", "server", "SENTRA FastAPI UI Adapter ready")
+    threading.Thread(target=_init, daemon=True).start()
 
 
 # --- Auth Endpoints ---
@@ -550,7 +553,7 @@ def get_risk_hotspots():
         )
         dummy_results.append(res)
 
-    hotspots = state.pipeline.detector.find_hotspots(dummy_results)
+    hotspots = state.pipeline.detector.detect(dummy_results)
     return [h.to_dict() for h in hotspots]
 
 
@@ -650,5 +653,25 @@ def get_system_logs():
     return state.system_logs
 
 
+# --- Static Production UI Mount ---
+
+dist_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web", "dist")
+if os.path.exists(dist_dir):
+    from fastapi.staticfiles import StaticFiles
+    from fastapi.responses import FileResponse
+
+    app.mount("/assets", StaticFiles(directory=os.path.join(dist_dir, "assets")), name="assets")
+
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # Serve static file if exists (e.g. favicon.svg, icons.svg)
+        target = os.path.join(dist_dir, full_path)
+        if full_path and os.path.isfile(target):
+            return FileResponse(target)
+        # Otherwise fallback to index.html for React SPA
+        return FileResponse(os.path.join(dist_dir, "index.html"))
+
+
 if __name__ == "__main__":
     uvicorn.run("server:app", host="127.0.0.1", port=8000, reload=True)
+

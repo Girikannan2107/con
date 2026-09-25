@@ -59,9 +59,11 @@ export const HotspotsView: React.FC<Props> = ({ hotspots }) => {
                   className="badge badge-neutral"
                   style={{ fontSize: '0.65rem', textTransform: 'uppercase', marginBottom: 4 }}
                 >
-                  {spot.dimension || 'Site Cluster'}
+                  {(spot as any).kind || spot.dimension || 'Cluster'}
                 </span>
-                <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: 2 }}>{spot.name}</div>
+                <div style={{ fontWeight: 700, fontSize: '1rem', marginTop: 2 }}>
+                  {(spot as any).label || spot.name}
+                </div>
               </div>
               <div
                 style={{
@@ -73,30 +75,40 @@ export const HotspotsView: React.FC<Props> = ({ hotspots }) => {
                   borderRadius: '6px',
                 }}
               >
-                {(spot.sif_rate * 100).toFixed(0)}% SIF
+                {typeof spot.sif_rate === 'number' && spot.sif_rate <= 1
+                  ? `${(spot.sif_rate * 100).toFixed(0)}%`
+                  : `${spot.sif_rate || 0}%`}{' '}
+                SIF
               </div>
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', fontSize: '0.8rem' }}>
               <div style={{ background: '#090E1A', padding: '0.5rem', borderRadius: '6px' }}>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Total Reports</div>
-                <div style={{ fontWeight: 700, fontSize: '1rem' }}>{spot.count}</div>
+                <div style={{ fontWeight: 700, fontSize: '1rem' }}>
+                  {(spot as any).reports || spot.count || 0}
+                </div>
               </div>
               <div style={{ background: '#090E1A', padding: '0.5rem', borderRadius: '6px' }}>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>SIF Precursors</div>
-                <div style={{ fontWeight: 700, fontSize: '1rem', color: '#EF4444' }}>{spot.sif_count}</div>
+                <div style={{ fontWeight: 700, fontSize: '1rem', color: '#EF4444' }}>
+                  {(spot as any).sif_reports || spot.sif_count || 0}
+                </div>
               </div>
             </div>
 
-            {spot.rules && spot.rules.length > 0 && (
+            {((spot as any).top_rule || (spot.rules && spot.rules.length > 0)) && (
               <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: 2 }}>Associated Rules:</div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: 2 }}>Associated Rule / Barrier:</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.25rem' }}>
-                  {spot.rules.map((r, i) => (
-                    <span key={i} className="badge badge-neutral" style={{ fontSize: '0.65rem' }}>
-                      {r}
+                  <span className="badge badge-neutral" style={{ fontSize: '0.65rem' }}>
+                    {(spot as any).top_rule || spot.rules?.[0]}
+                  </span>
+                  {(spot as any).top_barrier && (
+                    <span className="badge badge-neutral" style={{ fontSize: '0.65rem', color: '#EF4444' }}>
+                      {(spot as any).top_barrier}
                     </span>
-                  ))}
+                  )}
                 </div>
               </div>
             )}
