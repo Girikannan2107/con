@@ -43,8 +43,9 @@ try:  # pragma: no cover - the learned layer is optional by design
 except Exception:  # noqa: BLE001
     HAS_XGBOOST = False
 
-SAMPLES = "samples"
-CSV_SAMPLE = os.path.join(SAMPLES, "near_miss_reports.csv")
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SAMPLES = os.path.join(REPO_ROOT, "samples")
+CSV_SAMPLE = os.path.join(SAMPLES, "tabular", "near_miss_reports.csv")
 
 
 def _application():
@@ -74,7 +75,7 @@ class TestIngestionPathsEndToEnd(unittest.TestCase):
         self.assertGreaterEqual(sum(1 for r in results if r.sif_potential), 4)
 
     def test_a_text_document_splits_into_report_sized_blocks(self) -> None:
-        document = self.extractor.extract(os.path.join(SAMPLES, "shift_log.txt"))
+        document = self.extractor.extract(os.path.join(SAMPLES, "documents", "shift_log.txt"))
         self.assertEqual(document.backend, "text")
         blocks = document.blocks()
         self.assertGreaterEqual(len(blocks), 5)
@@ -83,7 +84,7 @@ class TestIngestionPathsEndToEnd(unittest.TestCase):
         self.assertTrue(all(result.iogp_rule for result in results))
 
     def test_a_pdf_is_read_through_its_text_layer_without_ocr(self) -> None:
-        document = self.extractor.extract(os.path.join(SAMPLES, "permit_observation.pdf"))
+        document = self.extractor.extract(os.path.join(SAMPLES, "documents", "permit_observation.pdf"))
         self.assertEqual(document.backend, "pdf-text")
         self.assertGreater(len(document.text), 400)
         result = self.pipeline.analyze(document.text, reference="PTW-0142")
@@ -92,7 +93,7 @@ class TestIngestionPathsEndToEnd(unittest.TestCase):
 
     def test_a_non_english_report_is_carried_through_not_dropped(self) -> None:
         """Without a translator the text still analyses; it is never discarded."""
-        document = self.extractor.extract(os.path.join(SAMPLES, "multilingual_report.txt"))
+        document = self.extractor.extract(os.path.join(SAMPLES, "multilingual", "multilingual_report.txt"))
         blocks = [block for block in document.blocks() if len(block) > 60]
         self.assertGreaterEqual(len(blocks), 3)
         for block in blocks:
@@ -309,8 +310,8 @@ class TestBuildTwoWindowEndToEnd(unittest.TestCase):
 
     def test_documents_are_read_and_queued_for_analysis(self) -> None:
         """Drives Add documents itself, with the file chooser answered for it."""
-        paths = [os.path.join(SAMPLES, "shift_log.txt"),
-                 os.path.join(SAMPLES, "permit_observation.pdf")]
+        paths = [os.path.join(SAMPLES, "documents", "shift_log.txt"),
+                 os.path.join(SAMPLES, "documents", "permit_observation.pdf")]
         original = self.main2.QFileDialog.getOpenFileNames
         self.main2.QFileDialog.getOpenFileNames = lambda *args, **kw: (paths, "")
         try:
@@ -419,7 +420,7 @@ class TestBuildTwoWindowEndToEnd(unittest.TestCase):
 
     def test_every_language_sample_is_read_and_analysed(self) -> None:
         """Tamil, Hindi and the rest reach a verdict rather than being dropped."""
-        folder = os.path.join(SAMPLES, "languages")
+        folder = os.path.join(SAMPLES, "multilingual", "languages")
         names = sorted(name for name in os.listdir(folder) if name.endswith(".txt"))
         self.assertGreaterEqual(len(names), 6)
         extractor = DocumentExtractor()

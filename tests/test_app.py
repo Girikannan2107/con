@@ -911,21 +911,28 @@ class TestMinimizingLanguage(unittest.TestCase):
 class TestSampleReports(unittest.TestCase):
     """The bundled test material must actually exercise what it claims to."""
 
-    FOLDER = "samples"
+    REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    FOLDER = os.path.join(REPO_ROOT, "samples")
 
     def test_every_sample_named_in_the_readme_exists(self) -> None:
         with open(os.path.join(self.FOLDER, "README.md"), encoding="utf-8") as handle:
             readme = handle.read()
-        for name in ("near_miss_reports.csv", "shift_log.txt", "permit_observation.pdf",
-                     "scanned_uauc_report.png", "multilingual_report.txt"):
-            self.assertTrue(os.path.isfile(os.path.join(self.FOLDER, name)), name)
-            self.assertIn(name, readme, f"{name} is not documented")
+        for rel_path in (
+            os.path.join("tabular", "near_miss_reports.csv"),
+            os.path.join("documents", "shift_log.txt"),
+            os.path.join("documents", "permit_observation.pdf"),
+            os.path.join("documents", "scanned_uauc_report.png"),
+            os.path.join("multilingual", "multilingual_report.txt"),
+        ):
+            self.assertTrue(os.path.isfile(os.path.join(self.FOLDER, rel_path)), rel_path)
+            basename = os.path.basename(rel_path)
+            self.assertIn(basename, readme, f"{rel_path} is not documented")
 
     def test_the_csv_imports_with_its_references(self) -> None:
         from main import read_csv_reports
 
         narratives, references = read_csv_reports(
-            os.path.join(self.FOLDER, "near_miss_reports.csv"))
+            os.path.join(self.FOLDER, "tabular", "near_miss_reports.csv"))
         self.assertEqual(len(narratives), 18)
         self.assertEqual(references[0], "NM-2601")
         self.assertGreaterEqual(sum(1 for text in narratives if len(text) > 180), 13,
@@ -937,7 +944,7 @@ class TestSampleReports(unittest.TestCase):
         from main import read_csv_reports
 
         narratives, references = read_csv_reports(
-            os.path.join(self.FOLDER, "near_miss_reports.csv"))
+            os.path.join(self.FOLDER, "tabular", "near_miss_reports.csv"))
         pipeline = SIFPipeline(backend="hashing")
         results = [pipeline.analyze(text, reference=reference)
                    for text, reference in zip(narratives, references)]

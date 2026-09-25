@@ -62,9 +62,14 @@ from sif.updater import UpdateChecker, UpdateInfo
 from sif.version import __version__, describe
 from ui.theme import PAGE_MARGIN, C, STYLESHEET
 from ui.views import HOTSPOT_COLUMNS, HOTSPOT_FLEX, AnalyticsView, TableView
+from ui2.auth import AUTH, User
+from ui2.landing import LandingView
+from ui2.login import LoginView
+from ui2.incidents import IncidentsView
+from ui2.actions import CorrectiveActionsView
 from ui2.components import HeaderBar, Sidebar, titled
 from ui2.review import ReviewView
-from ui2.views import DashboardView, EnginesView, IngestView, ReportView, SettingsView
+from ui2.views import DashboardView, EnginesView, IngestView, ReportView, SettingsView, AuditView
 from ui2.workflow import WorkflowMap
 
 __all__ = ["AnalysisWorker", "ExtractionWorker", "TrainingWorker", "ProbeWorker",
@@ -74,28 +79,25 @@ __all__ = ["AnalysisWorker", "ExtractionWorker", "TrainingWorker", "ProbeWorker"
 LOGGER = logging.getLogger("sif.app2")
 
 APP_NAME = "SENTRA"
-#: The product is SENTRA; "SIF Insight Console" was the working title and
-#: survives only where renaming would move an operator's data - the
-#: settings directory in :mod:`sif.prefs`, which holds their review
-#: decisions, and the ``sif`` package itself.
 APP_LONG_NAME = "SENTRA - SIF Insight Console"
 APP_SUBTITLE = ("Sense the Risk  ·  Stop the Incident   |   UA/UC and near-miss "
                 "intelligence   |   PS 26165   |   build 2")
-#: Wait before the start-up update check so it never competes with first paint.
 UPDATE_CHECK_DELAY_MS = 4000
 
-#: Starting width of the navigation rail; the operator can drag it.
 RAIL_WIDTH = 238
 
 NAV_ITEMS = (
-    ("workflow", "Workflow map"),
-    ("ingest", "Ingest and OCR"),
     ("dashboard", "Dashboard"),
-    ("reports", "Reports and evidence"),
-    ("hotspots", "Risk hotspots"),
-    ("review", "Human review"),
+    ("incidents", "Incidents"),
+    ("reports", "Reports & Evidence"),
+    ("review", "Human Review"),
+    ("actions", "Corrective Actions"),
+    ("hotspots", "Risk Hotspots"),
     ("analytics", "Analytics"),
-    ("engines", "Engines"),
+    ("ingest", "Ingest and OCR"),
+    ("workflow", "Analysis Pipeline"),
+    ("engines", "Intelligence Engines"),
+    ("audit", "Audit Trail"),
     ("settings", "Settings"),
 )
 
@@ -477,20 +479,22 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(UPDATE_CHECK_DELAY_MS, lambda: self.check_for_updates(False))
 
     # -- construction ------------------------------------------------------
-
     def _build_ui(self) -> None:
         self.sidebar = Sidebar(NAV_ITEMS)
         self.sidebar.navigated.connect(self.navigate)
-        self.sidebar.select("workflow")
+        self.sidebar.select("dashboard")
 
         self.header = HeaderBar(APP_NAME, "Oil India Limited", "PS 26165",
                                 "HSE Analyst", "Team member")
         self.header.search_changed.connect(self._apply_filter)
+        self.header.sign_out_requested.connect(self._on_sign_out)
+        self.header.role_switch_requested.connect(self._on_role_switch)
 
         self.workflow = WorkflowMap()
         self.workflow.stage_activated.connect(self.run_stage)
         self.ingest_view = IngestView(LANGUAGE_CHOICES, UNSUPPORTED_LANGUAGES)
         self.dashboard = DashboardView()
+        self.incidents_view = IncidentsView()
         self.report_view = ReportView()
         self.hotspot_view = TableView(
             "Risk hotspots",
@@ -504,44 +508,48 @@ class MainWindow(QMainWindow):
                        "many reports the group happens to hold.")
         self.review_view = ReviewView()
         self.review_view.set_reviewer(str(prefs.get("reviewer", "") or ""))
+        self.actions_view = CorrectiveActionsView()
         self.analytics_view = AnalyticsView()
         self.engines_view = EnginesView()
+        self.audit_view = AuditView()
         self.settings_view = SettingsView()
 
         self.pages = QStackedWidget()
         self._page_index: Dict[str, int] = {}
         # An empty title means the page already opens with its own heading.
         for key, widget, title, caption in (
-                ("workflow", self.workflow, "How the console works, end to end",
-                 "Each box is a capability and its own control. Statuses are "
-                 "live: they show what is ready on this machine right now."),
-                ("ingest", self.ingest_view, "Ingest and OCR",
-                 "Upload documents, extract the text, and translate it to English."),
                 ("dashboard", self.dashboard, "Dashboard",
                  "Headline metrics and exposure charts for the whole corpus."),
-                ("reports", self.report_view, "Reports and evidence",
+                ("incidents", self.incidents_view, "", ""),
+                ("reports", self.report_view, "Reports & Evidence",
                  "Every analysed report, with the cues behind each verdict."),
-                ("hotspots", self.hotspot_view, "Risk hotspots",
+                ("review", self.review_view, "", ""),
+                ("actions", self.actions_view, "", ""),
+                ("hotspots", self.hotspot_view, "Risk Hotspots",
                  "Sites, activities and repeat barrier failures, ranked by "
                  "SIF-precursor density rather than volume."),
-                ("review", self.review_view, "", ""),
                 ("analytics", self.analytics_view, "Analytics",
                  "What the trained model learned, and how well it scored."),
-                ("engines", self.engines_view, "Intelligence engines",
+                ("ingest", self.ingest_view, "Ingest and OCR",
+                 "Upload documents, extract the text, and translate it to English."),
+                ("workflow", self.workflow, "Analysis Pipeline",
+                 "Each box is a capability and its own control. Statuses are "
+                 "live: they show what is ready on this machine right now."),
+                ("engines", self.engines_view, "Intelligence Engines",
                  "The encoder, the local LLM, the learned model and MLOps."),
+                ("audit", self.audit_view, "", ""),
                 ("settings", self.settings_view, "Settings",
                  "Preferences, logging and the audit trail.")):
             self._page_index[key] = self.pages.addWidget(titled(widget, title, caption))
 
-        self.status_label = QLabel("Ready. Start on the workflow map.")
+        self.status_label = QLabel("Ready. Start on the dashboard.")
         self.status_label.setObjectName("Faint")
         footer = QFrame()
         footer.setObjectName("Footer")
         footer.setFixedHeight(34)
         footer_layout = QHBoxLayout(footer)
         footer_layout.setContentsMargins(PAGE_MARGIN, 6, PAGE_MARGIN, 6)
-        left = QLabel("Oil India Limited  ·  PS 26165  ·  prototype output, not a "
-                      "statutory record")
+        left = QLabel("Oil India Limited  ·  PS 26165  ·  prototype output, not a statutory record")
         left.setObjectName("Faint")
         footer_layout.addWidget(left)
         footer_layout.addStretch(1)
@@ -554,9 +562,6 @@ class MainWindow(QMainWindow):
         right_layout.addWidget(self.pages, stretch=1)
         right_layout.addWidget(footer)
 
-        # A splitter, so the rail is the operator's to size rather than a fixed
-        # column. Collapsing is off: a nav that can be dragged out of existence
-        # leaves no way back to it.
         self.body = QSplitter(Qt.Orientation.Horizontal)
         self.body.setObjectName("Shell")
         self.body.setChildrenCollapsible(False)
@@ -566,20 +571,34 @@ class MainWindow(QMainWindow):
         self.body.setStretchFactor(0, 0)
         self.body.setStretchFactor(1, 1)
         self.body.setSizes([RAIL_WIDTH, 1200])
-        # The header runs the full width above both, so its brand block has to
-        # track the rail or the two stop sharing an edge the moment it is
-        # dragged.
         self.body.splitterMoved.connect(
             lambda *_: self.header.set_rail_width(self.sidebar.width()))
         self.header.set_rail_width(RAIL_WIDTH)
 
-        container = QWidget()
-        layout = QVBoxLayout(container)
+        self.main_container = QWidget()
+        layout = QVBoxLayout(self.main_container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         layout.addWidget(self.header)
         layout.addWidget(self.body, stretch=1)
-        self.setCentralWidget(container)
+
+        # Outer Stack: Landing Page -> Login Screen -> Main Console
+        self.landing_view = LandingView()
+        self.landing_view.access_requested.connect(lambda: self.outer_stack.setCurrentWidget(self.login_view))
+        self.landing_view.login_requested.connect(lambda: self.outer_stack.setCurrentWidget(self.login_view))
+        self.landing_view.report_incident_requested.connect(self._on_report_incident_from_landing)
+
+        self.login_view = LoginView()
+        self.login_view.authenticated.connect(self._on_login_success)
+        self.login_view.back_to_landing.connect(lambda: self.outer_stack.setCurrentWidget(self.landing_view))
+        self.login_view.report_incident_requested.connect(self._on_report_incident_from_landing)
+
+        self.outer_stack = QStackedWidget()
+        self.outer_stack.addWidget(self.landing_view)
+        self.outer_stack.addWidget(self.login_view)
+        self.outer_stack.addWidget(self.main_container)
+        self.outer_stack.setCurrentWidget(self.landing_view)
+        self.setCentralWidget(self.outer_stack)
 
         file_menu = self.menuBar().addMenu("&File")
         for label, shortcut, slot in (
@@ -608,6 +627,37 @@ class MainWindow(QMainWindow):
         about_action = QAction("&About", self)
         about_action.triggered.connect(self.show_about)
         help_menu.addAction(about_action)
+
+    def _on_report_incident_from_landing(self) -> None:
+        if AUTH.is_authenticated:
+            self.outer_stack.setCurrentWidget(self.main_container)
+            self.navigate("ingest")
+        else:
+            self.outer_stack.setCurrentWidget(self.login_view)
+
+    def _on_login_success(self) -> None:
+        user = AUTH.current_user
+        if not user:
+            return
+        self.header.set_user(user)
+        self.sidebar.update_role_permissions()
+        self.dashboard.set_role(user.role)
+        self.review_view.set_reviewer(user.name)
+        self.audit.system(f"user logged in: {user.name} ({user.role})",
+                          employee_id=user.employee_id)
+        self.outer_stack.setCurrentWidget(self.main_container)
+        self.navigate("dashboard")
+
+    def _on_sign_out(self) -> None:
+        user = AUTH.current_user
+        if user:
+            self.audit.system(f"user logged out: {user.name}")
+        AUTH.logout()
+        self.outer_stack.setCurrentWidget(self.landing_view)
+
+    def _on_role_switch(self, role: str) -> None:
+        AUTH.login_as(role)
+        self._on_login_success()
 
     def _connect(self) -> None:
         self.ingest_view.analyse_requested.connect(self.analyse_text)
@@ -639,6 +689,16 @@ class MainWindow(QMainWindow):
         self.engines_view.ollama_check_requested.connect(self.check_llm)
         self.engines_view.ollama_config_changed.connect(self.configure_llm)
         self.engines_view.ollama_toggled.connect(self.set_llm_enabled)
+
+        self.audit_view.audit_exported.connect(self.export_audit)
+        self.audit_view.audit_refreshed.connect(self._refresh_audit)
+
+        self.actions_view.action_updated.connect(
+            lambda: self.sidebar.set_badge(
+                "actions",
+                sum(1 for a in getattr(self.actions_view, "_actions", []) if a.status == "Overdue")
+            )
+        )
 
         self.settings_view.log_level_changed.connect(self.change_log_level)
         self.settings_view.logs_cleared.connect(self.clear_logs)
@@ -1348,8 +1408,6 @@ class MainWindow(QMainWindow):
         kpis = dict(intelligence.kpis)
         kpis["model_agreement"] = self._model_agreement(results)
         kpis["language"] = self.language
-        # The header counts what is still owed to a person, not what was ever
-        # queued: a decided report is finished work and stops being a number.
         kpis["needs_review"] = outstanding
         kpis["reviewed"] = self.decisions.counts()["decided"]
 
@@ -1362,6 +1420,19 @@ class MainWindow(QMainWindow):
         self.analytics_view.update_model(self.mlops.status()["model"],
                                          report.importances if report else [])
         self._show_hotspots(intelligence.hotspots)
+        
+        if hasattr(self, "incidents_view"):
+            self.incidents_view.set_results(results)
+        if hasattr(self, "audit_view"):
+            self.audit_view.set_audit_rows(self.audit.entries())
+
+        self.sidebar.set_badge("review", outstanding)
+        sif_cnt = sum(1 for r in results if r.sif_potential)
+        self.sidebar.set_badge("incidents", sif_cnt)
+        if hasattr(self, "actions_view"):
+            overdue_cnt = sum(1 for a in getattr(self.actions_view, "_actions", []) if a.status == "Overdue")
+            self.sidebar.set_badge("actions", overdue_cnt)
+
         self._refresh_workflow()
         return intelligence
 
