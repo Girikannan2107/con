@@ -78,7 +78,7 @@ def main():
         width=1420,
         height=920,
         min_size=(1080, 720),
-        background_color="#090D16",
+        background_color="#050505",
         confirm_close=False,
     )
 
