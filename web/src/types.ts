@@ -56,12 +56,14 @@ export interface IncidentReport {
   activity: string;
   location: string;
   barrier_failure: string;
+  barrier_failures?: string[];
   energy_source: string;
   p_sif: number;
   risk_score: number;
   risk_band: RiskBand;
   severity_hint: string;
   confidence: number;
+  sif_confidence?: number;
   rule_confidence: number;
   high_energy: boolean;
   barrier_failed: boolean;
@@ -84,6 +86,7 @@ export interface IncidentReport {
   evidence?: IncidentEvidence;
   status: string;
   human_decision?: HumanDecision | null;
+  matched_keywords?: string[];
 }
 
 export interface DashboardSummary {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, AlertCircle, ArrowLeft, Check, Lock, User as UserIcon } from 'lucide-react';
+import { ShieldCheck, AlertCircle, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { User } from '../types';
 
 interface Props {
@@ -10,6 +10,7 @@ interface Props {
 export const LoginScreen: React.FC<Props> = ({ onLogin, availableUsers }) => {
   const [employeeId, setEmployeeId] = useState('HSE001');
   const [password, setPassword] = useState('sentra2026');
+  const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -17,7 +18,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin, availableUsers }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!employeeId.trim()) {
-      setError('Please enter your Employee ID or registered email.');
+      setError('Please enter your username or registered email.');
       return;
     }
     setLoading(true);
@@ -25,7 +26,7 @@ export const LoginScreen: React.FC<Props> = ({ onLogin, availableUsers }) => {
     try {
       await onLogin(employeeId.trim(), password);
     } catch (err: any) {
-      setError(err.message || 'Invalid employee ID/email or password.');
+      setError(err.message || 'Invalid username/email or password.');
     } finally {
       setLoading(false);
     }
@@ -39,46 +40,66 @@ export const LoginScreen: React.FC<Props> = ({ onLogin, availableUsers }) => {
 
   return (
     <div className="login-split-container">
-      {/* Left Brand / Industrial Hero Panel */}
+      {/* Left Dark Branded Panel */}
       <div className="login-hero-panel">
-        {/* Brand Header */}
-        <div className="hero-brand-header">
-          <div className="hero-logo-badge">S</div>
-          <div>
-            <div className="hero-brand-title">SENTRA</div>
-            <div className="hero-brand-subtitle">SAFETY INTELLIGENCE PLATFORM</div>
+        <div className="hero-top-section">
+          <div className="hero-brand-header">
+            <div className="hero-logo-badge">S</div>
+            <div>
+              <div className="hero-brand-title">SENTRA</div>
+              <div className="hero-brand-subtitle">SAFETY · INTELLIGENCE · COMPLIANCE</div>
+            </div>
+          </div>
+
+          <div className="hero-statement-box">
+            <p className="hero-statement-text">
+              Reads each near-miss and UA/UC report as it arrives, finds the ones that could have killed someone, shows why, and asks a person to confirm.
+            </p>
+          </div>
+
+          <div className="hero-workflow-stepper">
+            <div className="step-item">
+              <span className="step-circle">1</span>
+              <span className="step-label">Report</span>
+            </div>
+            <ArrowRight size={14} className="step-arrow" />
+            <div className="step-item">
+              <span className="step-circle">2</span>
+              <span className="step-label">Read</span>
+            </div>
+            <ArrowRight size={14} className="step-arrow" />
+            <div className="step-item">
+              <span className="step-circle">3</span>
+              <span className="step-label">Flag</span>
+            </div>
+            <ArrowRight size={14} className="step-arrow" />
+            <div className="step-item">
+              <span className="step-circle">4</span>
+              <span className="step-label">Explain</span>
+            </div>
+            <ArrowRight size={14} className="step-arrow" />
+            <div className="step-item active">
+              <span className="step-circle">5</span>
+              <span className="step-label">Person confirms</span>
+            </div>
           </div>
         </div>
 
-        {/* Center Quote / Value Proposition */}
-        <div className="hero-center-box">
-          <div className="hero-tag">PROCESS SAFETY & HSE INTELLIGENCE</div>
-          <div className="hero-quote">
-            Turning safety evidence into actionable intelligence before a precursor becomes an event.
-          </div>
-        </div>
-
-        {/* Bottom Organization Context */}
         <div className="hero-bottom-context">
           <div className="hero-org-title">Oil India Limited</div>
           <div className="hero-org-subtitle">
-            Field Operations & Incident Risk Console · Problem Statement 26165
+            Enterprise Process Safety & Loss Prevention Platform
           </div>
         </div>
       </div>
 
-      {/* Right Enterprise Authentication Form Panel */}
+      {/* Right Authentication Surface */}
       <div className="login-form-panel">
         <div className="login-form-inner">
-          {/* Top Bar Link */}
-          <div className="login-top-link">
-            <span>&lt;- Back to Home</span>
-          </div>
-
           <div className="login-header-group">
-            <h1 className="login-heading">Welcome back</h1>
+            <h1 className="login-heading">Sign in</h1>
             <p className="login-subheading">
-              Sign in to your Oil India safety intelligence workspace.
+              Use your SENTRA account. Your role is managed by your administrator.
             </p>
           </div>
 
@@ -90,13 +111,13 @@ export const LoginScreen: React.FC<Props> = ({ onLogin, availableUsers }) => {
           )}
 
           <form onSubmit={handleSubmit} className="login-form-fields">
-            {/* Employee ID / Email */}
+            {/* Username or email */}
             <div className="login-field-group">
-              <label className="login-label">EMPLOYEE ID / EMAIL</label>
+              <label className="login-label">Username or email</label>
               <input
                 type="text"
                 className="login-input"
-                placeholder="e.g. HSE001"
+                placeholder="e.g. HSE001 or name@oilindia.in"
                 value={employeeId}
                 onChange={(e) => setEmployeeId(e.target.value)}
                 autoFocus
@@ -106,30 +127,29 @@ export const LoginScreen: React.FC<Props> = ({ onLogin, availableUsers }) => {
 
             {/* Password */}
             <div className="login-field-group">
-              <div className="login-label-row">
-                <label className="login-label">PASSWORD</label>
-                <a
-                  href="#forgot"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setError('Contact HSE System Administrator (admin@oilindia.in) for credentials reset.');
-                  }}
-                  className="login-forgot-link"
+              <label className="login-label">Password</label>
+              <div className="password-input-wrap">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="login-input"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  className="btn-password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
                 >
-                  Forgot Password?
-                </a>
+                  {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                  <span>{showPassword ? 'Hide' : 'Show'}</span>
+                </button>
               </div>
-              <input
-                type="password"
-                className="login-input"
-                placeholder="••••••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
             </div>
 
-            {/* Remember Workstation Checkbox */}
+            {/* Remember me on this workstation */}
             <div className="login-remember-row">
               <label className="login-checkbox-label">
                 <input
@@ -137,39 +157,38 @@ export const LoginScreen: React.FC<Props> = ({ onLogin, availableUsers }) => {
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
                 />
-                <span>Remember this workstation</span>
+                <span>Remember me on this workstation</span>
               </label>
             </div>
 
-            {/* Sign In Primary Button */}
+            {/* Primary Sign In Button */}
             <button
               type="submit"
               className="login-submit-btn"
               disabled={loading}
             >
-              {loading ? 'SIGNING IN...' : 'SIGN IN'}
+              {loading ? 'Signing in...' : 'Sign in'}
             </button>
 
-            {/* SSO Enterprise Button */}
-            <button
-              type="button"
-              className="login-sso-btn"
-              onClick={() => handleQuickFill('HSE001')}
-            >
-              SIGN IN WITH OIL INDIA SSO
-            </button>
+            {/* Security note below button */}
+            <div className="login-security-notice">
+              <ShieldCheck size={14} className="text-green" />
+              <span>
+                Protected by SHA-256 workstation authentication and audit chain logging.
+              </span>
+            </div>
           </form>
 
-          {/* Quick Demo Access Pills */}
+          {/* Demo Access Switcher */}
           <div className="login-demo-section">
-            <div className="login-demo-header">DEMO ROLE QUICK ACCESS</div>
+            <div className="login-demo-header">AUTHORIZED DEMO PROFILES</div>
             <div className="login-demo-pills">
               <button
                 type="button"
                 className={`login-pill ${employeeId === 'HSE001' ? 'active' : ''}`}
                 onClick={() => handleQuickFill('HSE001')}
               >
-                HSE Analyst (HSE001)
+                HSE Lead (HSE001)
               </button>
               <button
                 type="button"
@@ -179,23 +198,6 @@ export const LoginScreen: React.FC<Props> = ({ onLogin, availableUsers }) => {
                 Safety Officer (SAFE001)
               </button>
             </div>
-          </div>
-
-          {/* Footer Action Links */}
-          <div className="login-footer-row">
-            <a
-              href="#report"
-              className="login-footer-link highlight"
-              onClick={(e) => {
-                e.preventDefault();
-                handleQuickFill('HSE001');
-              }}
-            >
-              REPORT AN INCIDENT
-            </a>
-            <span className="login-footer-link muted">
-              Need Help? Contact Admin
-            </span>
           </div>
         </div>
       </div>

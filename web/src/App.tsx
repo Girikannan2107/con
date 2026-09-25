@@ -37,20 +37,23 @@ import { Sidebar, TabId } from './components/Sidebar';
 import { Navbar } from './components/Navbar';
 import { LoginScreen } from './views/LoginScreen';
 import { ProjectSelectionScreen } from './views/ProjectSelectionScreen';
+import { HomeView } from './views/HomeView';
 import { DashboardView } from './views/DashboardView';
 import { IncidentsView } from './views/IncidentsView';
 import { IngestView } from './views/IngestView';
 import { ReviewView } from './views/ReviewView';
 import { HotspotsView } from './views/HotspotsView';
 import { ActionsView } from './views/ActionsView';
+import { ProfileView } from './views/ProfileView';
 import { EnginesView } from './views/EnginesView';
+import { SettingsView } from './views/SettingsView';
 import { LogsView } from './views/LogsView';
 
 type AppState = 'login' | 'project_selection' | 'workspace';
 
 export function App() {
   const [appState, setAppState] = useState<AppState>('login');
-  const [activeTab, setActiveTab] = useState<TabId>('dashboard');
+  const [activeTab, setActiveTab] = useState<TabId>('home');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
   const [availableWorkspaces, setAvailableWorkspaces] = useState<Workspace[]>([]);
@@ -229,48 +232,73 @@ export function App() {
 
   const getPageInfo = () => {
     switch (activeTab) {
+      case 'home':
+        return {
+          title: 'HSE Operational Landing',
+          subtitle: `${activeWorkspace?.name || 'SENTRA'} · Precursor Intelligence Console`,
+        };
       case 'dashboard':
         return {
-          title: 'HSE Executive Dashboard',
-          subtitle: `${activeWorkspace?.name || 'SENTRA'} · SIF Intelligence Overview`,
+          title: 'Executive Safety Dashboard',
+          subtitle: 'SIF Precursor Analytics, IOGP Compliance & Energy Breakdown',
         };
       case 'incidents':
         return {
           title: 'Incident Forensics & Inspection',
-          subtitle: 'Structured safety observation analysis with multi-tab forensic evidence',
+          subtitle: 'Observation analysis with neural NLP weights and multi-barrier evidence',
         };
       case 'ingest':
         return {
           title: 'Multilingual Ingest & OCR Studio',
-          subtitle: 'Batch CSV ingestion, PDF extraction, and 12-language optical character recognition',
+          subtitle: '6-stage operational pipeline: Batch CSV, PDF permit OCR & 12 Indian languages',
         };
       case 'review':
         return {
-          title: 'Human Review Bench',
-          subtitle: 'Accountable triage station for AI/rule disagreements and critical safety cases',
+          title: 'HSE Review Workstation',
+          subtitle: 'Accountable triage bench · AI recommendations requiring human confirmation',
         };
       case 'hotspots':
         return {
           title: 'Systemic Risk Hotspots',
-          subtitle: 'Wilson-score precursor density ranking across sites, activities, and broken barriers',
+          subtitle: 'Wilson-score precursor density ranking across assets, areas & broken barriers',
         };
       case 'actions':
         return {
           title: 'Corrective Safety Actions (CAPA)',
-          subtitle: 'Track, assign, verify, and close critical safety interventions linked to findings',
+          subtitle: 'Track, assign, verify, and close critical safety interventions',
+        };
+      case 'profile':
+        return {
+          title: 'User Profile & Authorization',
+          subtitle: 'Role-based credentials, permissions, and active workstation sessions',
         };
       case 'engines':
         return {
           title: 'Intelligence Engines & MLOps',
-          subtitle: 'Semantic sentence transformers, PaddleOCR models, and XGBoost supervised retraining',
+          subtitle: 'Local sentence transformers, PaddleOCR models, and XGBoost retraining',
         };
-      case 'logs':
+      case 'settings':
         return {
-          title: 'System Diagnostics & HSE Audit Trail',
-          subtitle: 'Append-only accountability record and real-time backend engine logs',
+          title: 'System Settings & Rules',
+          subtitle: 'Configure IOGP rules, SIF thresholds, and organization preferences',
+        };
+      case 'syslog':
+        return {
+          title: 'SysLog Diagnostics',
+          subtitle: 'Real-time technical logs, exception tracing, and service status',
+        };
+      case 'auditlog':
+        return {
+          title: 'Audit Trail & Compliance Ledger',
+          subtitle: 'Append-only SHA-256 tamper-evident HSE review accountability trail',
+        };
+      case 'accounts':
+        return {
+          title: 'HSE Accounts & Workspaces',
+          subtitle: 'Switch or manage authorized operational safety profiles',
         };
       default:
-        return { title: 'SENTRA', subtitle: 'SIF Intelligence Console' };
+        return { title: 'SENTRA', subtitle: 'Safety Intelligence Platform' };
     }
   };
 
@@ -280,9 +308,16 @@ export function App() {
     <div className="app-container">
       <Sidebar
         activeTab={activeTab}
-        onSelectTab={setActiveTab}
+        onSelectTab={(tab) => {
+          if (tab === 'accounts') {
+            setAppState('project_selection');
+          } else {
+            setActiveTab(tab);
+          }
+        }}
         currentUser={currentUser}
         onOpenUserModal={() => setAppState('project_selection')}
+        onLogout={handleLogout}
         reviewCount={reviewQueue.length}
         openActionsCount={actions.filter((a) => a.status !== 'Closed' && a.status !== 'Verified').length}
       />
@@ -300,6 +335,21 @@ export function App() {
         />
 
         <main className="content-body">
+          {activeTab === 'home' && (
+            <HomeView
+              summary={summary}
+              recentIncidents={incidents}
+              activeWorkspace={activeWorkspace}
+              currentUser={currentUser}
+              onAnalyzeQuick={handleAnalyzeQuick}
+              onNavigateTab={setActiveTab}
+              onSelectIncident={(inc) => {
+                setSelectedIncident(inc);
+                setActiveTab('incidents');
+              }}
+            />
+          )}
+
           {activeTab === 'dashboard' && (
             <DashboardView
               summary={summary}
@@ -348,11 +398,23 @@ export function App() {
             />
           )}
 
+          {activeTab === 'profile' && (
+            <ProfileView
+              currentUser={currentUser}
+              activeWorkspace={activeWorkspace}
+              onLogout={handleLogout}
+            />
+          )}
+
           {activeTab === 'engines' && (
             <EnginesView status={enginesStatus} onTrainModel={handleTrainModel} />
           )}
 
-          {activeTab === 'logs' && (
+          {activeTab === 'settings' && (
+            <SettingsView activeWorkspace={activeWorkspace} currentUser={currentUser} />
+          )}
+
+          {(activeTab === 'syslog' || activeTab === 'auditlog') && (
             <LogsView auditLogs={auditLogs} systemLogs={systemLogs} />
           )}
         </main>

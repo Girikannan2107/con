@@ -5,10 +5,7 @@ import {
   MapPin,
   ArrowRight,
   LogOut,
-  User as UserIcon,
-  ChevronDown,
   Building2,
-  CheckCircle2,
   Lock,
 } from 'lucide-react';
 import { User, Workspace } from '../types';
@@ -28,7 +25,6 @@ export const ProjectSelectionScreen: React.FC<Props> = ({
 }) => {
   const [search, setSearch] = useState('');
   const [enteringId, setEnteringId] = useState<string | null>(null);
-  const [showUserMenu, setShowUserMenu] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const filtered = workspaces.filter((ws) => {
@@ -56,63 +52,34 @@ export const ProjectSelectionScreen: React.FC<Props> = ({
 
   return (
     <div className="project-selection-screen">
-      {/* Top Navigation Bar */}
+      {/* Top Bar */}
       <header className="project-header">
         <div className="project-header-brand">
           <div className="brand-badge-small">S</div>
           <div>
             <div className="brand-title-small">SENTRA</div>
-            <div className="brand-subtitle-small">SAFETY INTELLIGENCE PLATFORM</div>
+            <div className="brand-subtitle-small">SAFETY · INTELLIGENCE · COMPLIANCE</div>
           </div>
         </div>
 
-        {/* User Profile Menu */}
         <div className="project-header-user">
-          <div
-            className="project-user-trigger"
-            onClick={() => setShowUserMenu(!showUserMenu)}
-          >
-            <div className="user-avatar-small">{currentUser.avatar_initials}</div>
-            <div className="user-text-small">
-              <div className="user-name-small">{currentUser.name}</div>
-              <div className="user-role-small">{currentUser.role}</div>
-            </div>
-            <ChevronDown size={14} style={{ color: 'var(--text-muted)' }} />
+          <div className="user-text-small">
+            <span className="user-name-small">{currentUser.name}</span>
+            <span className="user-role-badge">{currentUser.role}</span>
           </div>
-
-          {showUserMenu && (
-            <div className="project-user-dropdown">
-              <div className="dropdown-info">
-                <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{currentUser.name}</div>
-                <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
-                  {currentUser.email}
-                </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-highlight)', marginTop: 2 }}>
-                  Role: {currentUser.role}
-                </div>
-              </div>
-              <div className="dropdown-divider" />
-              <button
-                className="dropdown-item logout"
-                onClick={() => {
-                  setShowUserMenu(false);
-                  onLogout();
-                }}
-              >
-                <LogOut size={14} />
-                <span>Sign Out</span>
-              </button>
-            </div>
-          )}
+          <button className="btn-logout-small" onClick={onLogout} title="Sign Out">
+            <LogOut size={14} />
+            <span>Sign Out</span>
+          </button>
         </div>
       </header>
 
-      {/* Main Content Container */}
+      {/* Main Selection Area */}
       <div className="project-content-container">
         <div className="project-heading-group">
-          <h1 className="project-main-title">Select your project</h1>
+          <h1 className="project-main-title">Select workspace</h1>
           <p className="project-main-subtitle">
-            Choose a SENTRA safety intelligence workspace to continue.
+            Choose the SENTRA workspace you want to enter.
           </p>
         </div>
 
@@ -123,7 +90,7 @@ export const ProjectSelectionScreen: React.FC<Props> = ({
           </div>
         )}
 
-        {/* Search Bar */}
+        {/* Search */}
         <div className="project-search-wrapper">
           <Search size={16} className="search-icon" />
           <input
@@ -135,7 +102,7 @@ export const ProjectSelectionScreen: React.FC<Props> = ({
           />
         </div>
 
-        {/* Workspaces Grid */}
+        {/* Workspace Cards */}
         <div className="project-cards-grid">
           {filtered.map((ws) => {
             const isEntering = enteringId === ws.id;
@@ -144,13 +111,14 @@ export const ProjectSelectionScreen: React.FC<Props> = ({
                 <div className="workspace-card-top">
                   <div className="workspace-icon-box">{ws.icon_initial || 'S'}</div>
                   <div className="workspace-status-badge">
-                    <span className="status-dot" />
+                    <span className="status-dot ready" />
                     <span>{ws.status}</span>
                   </div>
                 </div>
 
                 <div className="workspace-card-body">
                   <h3 className="workspace-title">{ws.name}</h3>
+                  <p className="workspace-tagline">Safety Intelligence · HSE</p>
                   <p className="workspace-description">{ws.description}</p>
                 </div>
 
@@ -166,7 +134,7 @@ export const ProjectSelectionScreen: React.FC<Props> = ({
                   <div className="meta-row">
                     <Shield size={13} className="meta-icon" />
                     <span>
-                      Role: <strong style={{ color: 'var(--text-primary)' }}>{currentUser.role}</strong>
+                      User role: <strong>{currentUser.role}</strong>
                     </span>
                   </div>
                 </div>
@@ -177,7 +145,7 @@ export const ProjectSelectionScreen: React.FC<Props> = ({
                     onClick={() => handleEnter(ws.id)}
                     disabled={isEntering}
                   >
-                    <span>{isEntering ? 'ENTERING...' : 'ENTER PROJECT'}</span>
+                    <span>{isEntering ? 'ENTERING...' : 'ENTER WORKSPACE'}</span>
                     <ArrowRight size={14} />
                   </button>
                 </div>
@@ -188,10 +156,10 @@ export const ProjectSelectionScreen: React.FC<Props> = ({
 
         {filtered.length === 0 && (
           <div className="project-empty-state">
-            <Shield size={36} style={{ color: 'var(--text-muted)' }} />
-            <div style={{ fontWeight: 600, marginTop: 8 }}>No projects found</div>
-            <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              No workspaces match your search or authorization filters.
+            <Shield size={36} className="text-muted" />
+            <div className="empty-title">No workspaces found</div>
+            <div className="empty-desc">
+              No workspaces match your search query or authorization level.
             </div>
           </div>
         )}
