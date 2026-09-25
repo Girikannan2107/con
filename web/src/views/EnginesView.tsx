@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Cpu, RefreshCw, BarChart2, ShieldCheck, Play, Award, CheckCircle2 } from 'lucide-react';
+import { Cpu, BarChart2, Play, CheckCircle2, RefreshCw } from 'lucide-react';
 import { EngineStatus } from '../types';
 
 interface Props {
@@ -28,32 +28,31 @@ export const EnginesView: React.FC<Props> = ({ status, onTrainModel }) => {
       const res = await onTrainModel();
       setTrainResult(res);
     } catch (err: any) {
-      setError(err.message || 'Training failed');
+      setError(err.message || 'Model training failed');
     } finally {
       setTraining(false);
     }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem', maxWidth: 960 }}>
-      {/* Engines Banner */}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+      {/* Engines Header */}
       <div className="panel" style={{ marginBottom: 0 }}>
         <div className="panel-header" style={{ marginBottom: 0 }}>
           <div>
             <div className="panel-title">
-              <Cpu size={18} style={{ color: 'var(--accent-cyan)' }} />
-              <span>Safety Intelligence Engines & MLOps Infrastructure</span>
+              <Cpu size={18} className="text-red" />
+              <span>Safety Intelligence Engines & MLOps Architecture</span>
             </div>
-            <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
-              Runtime status of sentence transformer encoders, PaddleOCR, deterministic safety rules,
-              and XGBoost learning layers.
+            <p style={{ fontSize: '0.75rem', color: 'var(--oil-text-secondary)', marginTop: 2 }}>
+              Runtime status of sentence transformer encoders, PaddleOCR, deterministic rules, and XGBoost supervised retraining.
             </p>
           </div>
         </div>
       </div>
 
       {error && (
-        <div style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #EF4444', padding: '0.75rem', borderRadius: '8px', color: '#FCA5A5', fontSize: '0.85rem' }}>
+        <div className="login-error-alert">
           {error}
         </div>
       )}
@@ -64,13 +63,13 @@ export const EnginesView: React.FC<Props> = ({ status, onTrainModel }) => {
         <div className="panel" style={{ marginBottom: 0 }}>
           <div className="panel-header">
             <div className="panel-title">Semantic Sentence Transformer</div>
-            <span className="badge badge-low">Online</span>
+            <span className="badge badge-low">Online · CPU</span>
           </div>
           <div style={{ fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <div>Engine Type: <strong>{status?.encoder.type || 'TransformerEncoder'}</strong></div>
-            <div>Vector Embedding Dimension: <strong>{status?.encoder.dim || 384}d</strong></div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-              Maps report semantics to IOGP Life-Saving Rule prototype vectors.
+            <div>Engine Type: <strong>{status?.encoder.type || 'all-MiniLM-L6-v2'}</strong></div>
+            <div>Vector Dimension: <strong>{status?.encoder.dim || 384}d Dense Embeddings</strong></div>
+            <div style={{ color: 'var(--oil-text-secondary)', fontSize: '0.75rem' }}>
+              Maps report semantics to IOGP Life-Saving Rule prototype vectors in real-time.
             </div>
           </div>
         </div>
@@ -80,13 +79,14 @@ export const EnginesView: React.FC<Props> = ({ status, onTrainModel }) => {
           <div className="panel-header">
             <div className="panel-title">Document & Image OCR Engine</div>
             <span className="badge badge-low">
-              {status?.ocr.paddle_installed ? 'PaddleOCR Active' : 'Native Parser'}
+              {status?.ocr.paddle_installed ? 'PaddleOCR Active' : 'Native Parser Active'}
             </span>
           </div>
           <div style={{ fontSize: '0.8rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-            <div>Engine Status: <strong>{status?.ocr.status || 'Active'}</strong></div>
-            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-              Languages: {status?.ocr.supported_languages?.slice(0, 8).join(', ')}...
+            <div>Status: <strong>{status?.ocr.status || 'Active'}</strong></div>
+            <div>Languages: <strong>{status?.ocr.supported_languages?.slice(0, 6).join(', ')} + 6 others</strong></div>
+            <div style={{ color: 'var(--oil-text-secondary)', fontSize: '0.75rem' }}>
+              Multilingual Optical Character Recognition across English and Indian regional scripts.
             </div>
           </div>
         </div>
@@ -97,33 +97,33 @@ export const EnginesView: React.FC<Props> = ({ status, onTrainModel }) => {
         <div className="panel-header">
           <div>
             <div className="panel-title">
-              <BarChart2 size={18} style={{ color: 'var(--accent-cyan)' }} />
+              <BarChart2 size={18} className="text-red" />
               <span>Learned Supervised Model (XGBoost 3rd Opinion)</span>
             </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
-              Feature dimension: 46 named features · MLflow: {status?.mlops.tracking_uri || 'sqlite:///mlflow.db'}
+            <div style={{ fontSize: '0.75rem', color: 'var(--oil-text-secondary)', marginTop: 2 }}>
+              Feature dimension: 46 engineered safety features · Tracking: {status?.mlops.tracking_uri || 'sqlite:///mlflow.db'}
             </div>
           </div>
 
-          <button className="btn btn-primary" onClick={handleTrain} disabled={training}>
+          <button className="btn-primary-sentra" onClick={handleTrain} disabled={training}>
             <Play size={14} />
-            <span>{training ? 'Training Model...' : 'Train Model on Corpus'}</span>
+            <span>{training ? 'Training Model...' : 'Train Model on Ingested Corpus'}</span>
           </button>
         </div>
 
         {trainResult ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#10B981', fontWeight: 700, fontSize: '0.9rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--status-low)', fontWeight: 700, fontSize: '0.9rem' }}>
               <CheckCircle2 size={18} />
-              <span>Successfully trained model on {trainResult.num_samples} samples!</span>
+              <span>Model training complete on {trainResult.num_samples} sample observations!</span>
             </div>
 
             {/* Metrics */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '0.75rem' }}>
               {Object.entries(trainResult.metrics).map(([k, v]) => (
-                <div key={k} style={{ background: '#090E1A', padding: '0.65rem', borderRadius: '6px' }}>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>{k}</div>
-                  <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--accent-cyan)' }}>
+                <div key={k} style={{ background: 'var(--oil-off-white)', border: '1px solid var(--oil-border)', padding: '0.65rem', borderRadius: 4 }}>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--oil-text-secondary)', textTransform: 'uppercase', fontWeight: 700 }}>{k}</div>
+                  <div style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--oil-red)' }}>
                     {typeof v === 'number' ? v.toFixed(3) : v}
                   </div>
                 </div>
@@ -138,9 +138,9 @@ export const EnginesView: React.FC<Props> = ({ status, onTrainModel }) => {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
                   {trainResult.feature_importances.map(([feat, score], i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', background: '#0B1220', padding: '0.4rem 0.6rem', borderRadius: '4px' }}>
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', background: 'var(--oil-off-white)', border: '1px solid var(--oil-light-gray)', padding: '0.4rem 0.6rem', borderRadius: 4 }}>
                       <span>{feat}</span>
-                      <strong style={{ color: 'var(--accent-cyan)' }}>{(score * 100).toFixed(1)}%</strong>
+                      <strong style={{ color: 'var(--oil-red)' }}>{(score * 100).toFixed(1)}%</strong>
                     </div>
                   ))}
                 </div>
@@ -148,9 +148,9 @@ export const EnginesView: React.FC<Props> = ({ status, onTrainModel }) => {
             )}
           </div>
         ) : (
-          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+          <div style={{ fontSize: '0.8rem', color: 'var(--oil-text-secondary)', lineHeight: 1.4 }}>
             The XGBoost model trains over 46 domain features (energy severity, barrier criticality, rule one-hot,
-            text stats) using stratified cross-validation. Click "Train Model on Corpus" to fit and log to MLflow.
+            text stats) using stratified cross-validation. Click "Train Model on Ingested Corpus" to fit and log to MLflow.
           </div>
         )}
       </div>

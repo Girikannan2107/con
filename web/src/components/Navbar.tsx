@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ShieldCheck, MapPin, RefreshCw, ChevronDown, LayoutGrid, LogOut, Shield } from 'lucide-react';
+import { MapPin, RefreshCw, ChevronDown, LayoutGrid, LogOut } from 'lucide-react';
 import { User, Workspace } from '../types';
 
 interface Props {
@@ -44,18 +44,18 @@ export const Navbar: React.FC<Props> = ({
       <div className="topbar-right">
         {activeWorkspace && (
           <div className="workspace-site-badge">
-            <MapPin size={13} style={{ color: 'var(--accent-cyan)' }} />
+            <MapPin size={13} style={{ color: 'var(--oil-red)' }} />
             <span className="site-text">{activeWorkspace.site}</span>
           </div>
         )}
 
         <button
-          className="btn btn-secondary"
+          className="btn-secondary-sm"
           onClick={onRefresh}
           disabled={loading}
           title="Refresh live metrics"
         >
-          <RefreshCw size={14} className={loading ? 'spin' : ''} />
+          <RefreshCw size={13} className={loading ? 'spin' : ''} />
           <span>Refresh</span>
         </button>
 
@@ -71,21 +71,20 @@ export const Navbar: React.FC<Props> = ({
                 <div className="user-pill-name">{currentUser.name}</div>
                 <div className="user-pill-role">{currentUser.role}</div>
               </div>
-              <ChevronDown size={13} style={{ color: 'var(--text-muted)' }} />
+              <ChevronDown size={13} style={{ color: 'var(--oil-text-secondary)' }} />
             </div>
 
             {showUserMenu && (
               <div className="topbar-user-dropdown">
                 <div className="dropdown-user-header">
-                  <div style={{ fontWeight: 600, fontSize: '0.85rem' }}>{currentUser.name}</div>
-                  <div style={{ fontSize: '0.725rem', color: 'var(--text-muted)' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.85rem' }}>{currentUser.name}</div>
+                  <div style={{ fontSize: '0.725rem', color: 'var(--oil-text-secondary)' }}>
                     {currentUser.department}
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-highlight)', marginTop: 2 }}>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--oil-red)', marginTop: 2, fontWeight: 600 }}>
                     {currentUser.site}
                   </div>
                 </div>
-                <div className="dropdown-divider" />
                 <button
                   className="dropdown-item"
                   onClick={() => {
