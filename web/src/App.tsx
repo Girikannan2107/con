@@ -3,6 +3,9 @@ import {
   fetchCurrentUser,
   fetchAvailableUsers,
   loginUser,
+  logoutUser,
+  fetchWorkspaces,
+  selectWorkspace,
   fetchDashboardSummary,
   fetchIncidents,
   analyzeReport,
@@ -21,6 +24,7 @@ import {
 } from './api';
 import {
   User,
+  Workspace,
   DashboardSummary,
   IncidentReport,
   Hotspot,
@@ -31,7 +35,8 @@ import {
 } from './types';
 import { Sidebar, TabId } from './components/Sidebar';
 import { Navbar } from './components/Navbar';
-import { LoginModal } from './components/LoginModal';
+import { LoginScreen } from './views/LoginScreen';
+import { ProjectSelectionScreen } from './views/ProjectSelectionScreen';
 import { DashboardView } from './views/DashboardView';
 import { IncidentsView } from './views/IncidentsView';
 import { IngestView } from './views/IngestView';
@@ -41,11 +46,15 @@ import { ActionsView } from './views/ActionsView';
 import { EnginesView } from './views/EnginesView';
 import { LogsView } from './views/LogsView';
 
+type AppState = 'login' | 'project_selection' | 'workspace';
+
 export function App() {
+  const [appState, setAppState] = useState<AppState>('login');
   const [activeTab, setActiveTab] = useState<TabId>('dashboard');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null);
+  const [availableWorkspaces, setAvailableWorkspaces] = useState<Workspace[]>([]);
   const [availableUsers, setAvailableUsers] = useState<User[]>([]);
-  const [showUserModal, setShowUserModal] = useState(false);
 
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [incidents, setIncidents] = useState<IncidentReport[]>([]);
@@ -59,13 +68,41 @@ export function App() {
 
   const [loading, setLoading] = useState(false);
 
-  // Load all initial data from backend API
-  const refreshAllData = async () => {
+  // Initial session check on application start
+  useEffect(() => {
+    const initSession = async () => {
+      try {
+        const users = await fetchAvailableUsers().catch(() => []);
+        setAvailableUsers(users);
+
+        const meRes = await fetchCurrentUser().catch(() => null);
+        if (meRes?.user) {
+          setCurrentUser(meRes.user);
+          const wsList = await fetchWorkspaces().catch(() => []);
+          setAvailableWorkspaces(wsList);
+
+          if (meRes.active_workspace) {
+            setActiveWorkspace(meRes.active_workspace);
+            setAppState('workspace');
+            await loadWorkspaceData();
+          } else {
+            setAppState('project_selection');
+          }
+        } else {
+          setAppState('login');
+        }
+      } catch {
+        setAppState('login');
+      }
+    };
+    initSession();
+  }, []);
+
+  // Load all operational safety intelligence data for active workspace
+  const loadWorkspaceData = async () => {
     setLoading(true);
     try {
       const [
-        meRes,
-        usersRes,
         summaryRes,
         incidentsRes,
         queueRes,
@@ -75,8 +112,6 @@ export function App() {
         auditRes,
         sysLogsRes,
       ] = await Promise.all([
-        fetchCurrentUser().catch(() => null),
-        fetchAvailableUsers().catch(() => []),
         fetchDashboardSummary().catch(() => null),
         fetchIncidents().catch(() => []),
         fetchReviewQueue().catch(() => []),
@@ -87,8 +122,6 @@ export function App() {
         fetchSystemLogs().catch(() => []),
       ]);
 
-      if (meRes?.user) setCurrentUser(meRes.user);
-      if (usersRes) setAvailableUsers(usersRes);
       if (summaryRes) setSummary(summaryRes);
       if (incidentsRes) {
         setIncidents(incidentsRes);
@@ -107,63 +140,99 @@ export function App() {
     }
   };
 
-  useEffect(() => {
-    refreshAllData();
-  }, []);
-
-  // Handlers
-  const handleSelectUser = async (empId: string) => {
-    const res = await loginUser(empId);
-    if (res.success) {
+  // --- Auth Handlers ---
+  const handleLogin = async (employeeId: string, password?: string) => {
+    const res = await loginUser(employeeId, password);
+    if (res.success && res.user) {
       setCurrentUser(res.user);
-      await refreshAllData();
+      const wsList = await fetchWorkspaces().catch(() => []);
+      setAvailableWorkspaces(wsList);
+      setAppState('project_selection');
     }
   };
 
+  const handleSelectWorkspace = async (workspaceId: string) => {
+    const res = await selectWorkspace(workspaceId);
+    if (res.success && res.workspace) {
+      setActiveWorkspace(res.workspace);
+      setAppState('workspace');
+      await loadWorkspaceData();
+    }
+  };
+
+  const handleSwitchProject = () => {
+    setAppState('project_selection');
+  };
+
+  const handleLogout = async () => {
+    await logoutUser().catch(() => null);
+    setCurrentUser(null);
+    setActiveWorkspace(null);
+    setAppState('login');
+  };
+
+  // --- Workspace Actions ---
   const handleAnalyzeQuick = async (text: string) => {
     const report = await analyzeReport(text);
     setSelectedIncident(report);
-    await refreshAllData();
+    await loadWorkspaceData();
   };
 
   const handleSeedData = async () => {
     await seedSampleReports();
-    await refreshAllData();
+    await loadWorkspaceData();
   };
 
   const handleUploadFile = async (file: File) => {
     const res = await uploadDocument(file);
-    await refreshAllData();
+    await loadWorkspaceData();
     return res;
   };
 
   const handleReviewDecide = async (id: string, decision: any) => {
     await submitReviewDecision(id, decision);
-    await refreshAllData();
+    await loadWorkspaceData();
   };
 
   const handleCreateAction = async (action: Omit<SafetyAction, 'id' | 'created_at'>) => {
     await createAction(action);
-    await refreshAllData();
+    await loadWorkspaceData();
   };
 
   const handleUpdateActionStatus = async (id: string, status: SafetyAction['status']) => {
     await updateAction(id, { status });
-    await refreshAllData();
+    await loadWorkspaceData();
   };
 
   const handleTrainModel = async () => {
     const res = await triggerModelTraining();
-    await refreshAllData();
+    await loadWorkspaceData();
     return res;
   };
+
+  // --- Render based on Flow State ---
+
+  if (appState === 'login') {
+    return <LoginScreen onLogin={handleLogin} availableUsers={availableUsers} />;
+  }
+
+  if (appState === 'project_selection' && currentUser) {
+    return (
+      <ProjectSelectionScreen
+        workspaces={availableWorkspaces}
+        currentUser={currentUser}
+        onSelectWorkspace={handleSelectWorkspace}
+        onLogout={handleLogout}
+      />
+    );
+  }
 
   const getPageInfo = () => {
     switch (activeTab) {
       case 'dashboard':
         return {
           title: 'HSE Executive Dashboard',
-          subtitle: 'Oil India Limited · Real-time Serious Injury & Fatality (SIF) Intelligence',
+          subtitle: `${activeWorkspace?.name || 'SENTRA'} · SIF Intelligence Overview`,
         };
       case 'incidents':
         return {
@@ -213,7 +282,7 @@ export function App() {
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         currentUser={currentUser}
-        onOpenUserModal={() => setShowUserModal(true)}
+        onOpenUserModal={() => setAppState('project_selection')}
         reviewCount={reviewQueue.length}
         openActionsCount={actions.filter((a) => a.status !== 'Closed' && a.status !== 'Verified').length}
       />
@@ -223,7 +292,10 @@ export function App() {
           title={pageInfo.title}
           subtitle={pageInfo.subtitle}
           currentUser={currentUser}
-          onRefresh={refreshAllData}
+          activeWorkspace={activeWorkspace}
+          onRefresh={loadWorkspaceData}
+          onSwitchProject={handleSwitchProject}
+          onLogout={handleLogout}
           loading={loading}
         />
 
@@ -285,15 +357,6 @@ export function App() {
           )}
         </main>
       </div>
-
-      {showUserModal && (
-        <LoginModal
-          users={availableUsers}
-          currentUser={currentUser}
-          onSelectUser={handleSelectUser}
-          onClose={() => setShowUserModal(false)}
-        />
-      )}
     </div>
   );
 }

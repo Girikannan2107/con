@@ -27,7 +27,7 @@ from sif.lexical import SEED_REPORTS
 from sif.audit import AuditLog, FUNCTIONALITY, SYSTEM
 from sif.ocr import DocumentExtractor, ExtractedDocument
 from sif.mlops import MLOpsService
-from ui2.auth import AUTH, DEMO_USERS, USER_CREDENTIALS, _hash_password, User
+from sif.accounts import AUTH, DEMO_USERS, USER_CREDENTIALS, WORKSPACES, Workspace, _hash_password, User
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s")
@@ -59,6 +59,7 @@ class State:
         self.actions: List[Dict[str, Any]] = []
         self.system_logs: List[Dict[str, Any]] = []
         self._action_id_seq = 100
+        self.active_workspace_id: Optional[str] = None
 
     def warm_up(self):
         try:
@@ -200,7 +201,8 @@ def login(req: LoginRequest):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     user = AUTH.current_user
-    state.add_log("INFO", "auth", f"User {user.name} ({user.role}) logged in")
+    state.active_workspace_id = None
+    state.add_log("INFO", "auth", f"User {user.name} ({user.role}) authenticated successfully")
     return {
         "success": True,
         "token": AUTH._session_token,
@@ -218,13 +220,22 @@ def login(req: LoginRequest):
     }
 
 
+class SelectWorkspaceRequest(BaseModel):
+    workspace_id: str
+
+
 @app.get("/api/auth/me")
 def get_current_user():
     user = AUTH.current_user
     if not user:
-        # Default to HSE Analyst for frictionless first-run experience if not explicitly logged out
-        AUTH.login("HSE001", "sentra2026")
-        user = AUTH.current_user
+        return {"user": None, "active_workspace": None}
+
+    active_ws = None
+    if state.active_workspace_id:
+        for ws in WORKSPACES:
+            if ws.id == state.active_workspace_id:
+                active_ws = ws.to_dict()
+                break
 
     return {
         "user": {
@@ -237,7 +248,8 @@ def get_current_user():
             "site": user.site,
             "avatar_initials": user.avatar_initials,
             "permissions": list(user.permissions),
-        }
+        },
+        "active_workspace": active_ws,
     }
 
 
@@ -247,7 +259,45 @@ def logout():
     if user:
         state.add_log("INFO", "auth", f"User {user.name} logged out")
     AUTH.logout()
+    state.active_workspace_id = None
     return {"success": True}
+
+
+@app.get("/api/workspaces")
+def list_workspaces():
+    user = AUTH.current_user
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    results = []
+    for ws in WORKSPACES:
+        if ws.allowed_roles is None or user.role in ws.allowed_roles or "Admin" in user.role:
+            results.append(ws.to_dict())
+    return results
+
+
+@app.post("/api/workspaces/select")
+def select_workspace(req: SelectWorkspaceRequest):
+    user = AUTH.current_user
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    target_ws = None
+    for ws in WORKSPACES:
+        if ws.id == req.workspace_id:
+            target_ws = ws
+            break
+
+    if not target_ws:
+        raise HTTPException(status_code=404, detail="Workspace not found")
+
+    if target_ws.allowed_roles and user.role not in target_ws.allowed_roles and "Admin" not in user.role:
+        raise HTTPException(status_code=403, detail="Access denied: Your role is not authorized for this workspace")
+
+    state.active_workspace_id = target_ws.id
+    state.audit.system("workspace_selected", user=user.employee_id, workspace=target_ws.name, site=target_ws.site)
+    state.add_log("INFO", "workspace", f"User {user.name} entered workspace {target_ws.name}")
+    return {"success": True, "workspace": target_ws.to_dict()}
 
 
 @app.get("/api/auth/users")

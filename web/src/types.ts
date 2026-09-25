@@ -12,6 +12,17 @@ export interface User {
   permissions: string[];
 }
 
+export interface Workspace {
+  id: string;
+  name: string;
+  code: string;
+  description: string;
+  site: string;
+  organization: string;
+  status: string;
+  icon_initial: string;
+}
+
 export interface HumanDecision {
   decision: 'CONFIRM' | 'REVISE' | 'DISMISS';
   sif_potential: boolean;

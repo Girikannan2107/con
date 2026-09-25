@@ -7,6 +7,7 @@ import {
   AuditEntry,
   SystemLog,
   User,
+  Workspace,
 } from './types';
 
 const BASE_URL = '/api';
@@ -17,7 +18,7 @@ export async function fetchHealth() {
   return res.json();
 }
 
-export async function fetchCurrentUser(): Promise<{ user: User }> {
+export async function fetchCurrentUser(): Promise<{ user: User | null; active_workspace: Workspace | null }> {
   const res = await fetch(`${BASE_URL}/auth/me`);
   if (!res.ok) throw new Error('Failed to fetch current user');
   return res.json();
@@ -36,8 +37,33 @@ export async function loginUser(employee_id: string, password?: string): Promise
     body: JSON.stringify({ employee_id, password: password || 'sentra2026' }),
   });
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ detail: 'Login failed' }));
-    throw new Error(err.detail || 'Login failed');
+    const err = await res.json().catch(() => ({ detail: 'Invalid employee ID or password' }));
+    throw new Error(err.detail || 'Invalid employee ID or password');
+  }
+  return res.json();
+}
+
+export async function logoutUser(): Promise<{ success: boolean }> {
+  const res = await fetch(`${BASE_URL}/auth/logout`, { method: 'POST' });
+  if (!res.ok) throw new Error('Failed to logout');
+  return res.json();
+}
+
+export async function fetchWorkspaces(): Promise<Workspace[]> {
+  const res = await fetch(`${BASE_URL}/workspaces`);
+  if (!res.ok) throw new Error('Failed to load workspaces');
+  return res.json();
+}
+
+export async function selectWorkspace(workspace_id: string): Promise<{ success: boolean; workspace: Workspace }> {
+  const res = await fetch(`${BASE_URL}/workspaces/select`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ workspace_id }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: 'Failed to enter workspace' }));
+    throw new Error(err.detail || 'Failed to enter workspace');
   }
   return res.json();
 }
